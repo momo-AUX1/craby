@@ -103,8 +103,8 @@ impl CxxTemplate {
             let register_stmt = formatdoc! {
                 r#"
                 uintptr_t id = reinterpret_cast<uintptr_t>(this);
-                auto& registry = craby::signals::SignalManager::getInstance();
-                registry.registerDelegate(id,
+                auto& manager = craby::signals::SignalManager::getInstance();
+                manager.registerDelegate(id,
                                           std::bind(&{cxx_mod}::emit,
                                           this,
                                           std::placeholders::_1));"#,
@@ -114,8 +114,8 @@ impl CxxTemplate {
             let unregister_stmt = formatdoc! {
                 r#"
                 uintptr_t id = reinterpret_cast<uintptr_t>(this);
-                auto& registry = craby::signals::SignalManager::getInstance();
-                registry.unregisterDelegate(id);"#,
+                auto& manager = craby::signals::SignalManager::getInstance();
+                manager.unregisterDelegate(id);"#,
             };
 
             schema.signals.iter().for_each(|signal| {
