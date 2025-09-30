@@ -41,7 +41,7 @@ fn publish_napi_package(napi_package: &PackageInfo) -> Result<()> {
     println!("Publishing NAPI package: {}", napi_package.name);
 
     Command::new("yarn")
-        .args(&["napi", "prepublish", "-t", "npm", "--skip-gh-release"])
+        .args(&["napi", "prepublish", "-t", "npm", "--no-gh-release"])
         .current_dir(&napi_package.location)
         .status()?;
 

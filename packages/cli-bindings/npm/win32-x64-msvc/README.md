@@ -1,3 +1,3 @@
-# `@craby/cli-win32-x64-msvc`
+# `@craby/cli-bindings-win32-x64-msvc`
 
-This is the **x86_64-pc-windows-msvc** binary for `@craby/cli`
+This is the **x86_64-pc-windows-msvc** binary for `@craby/cli-bindings`

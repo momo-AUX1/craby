@@ -7,9 +7,9 @@
   "cpu": [
     "arm"
   ],
-  "main": "cli.linux-arm-gnueabihf.node",
+  "main": "cli-bindings.linux-arm-gnueabihf.node",
   "files": [
-    "cli.linux-arm-gnueabihf.node"
+    "cli-bindings.linux-arm-gnueabihf.node"
   ],
   "license": "MIT",
   "engines": {

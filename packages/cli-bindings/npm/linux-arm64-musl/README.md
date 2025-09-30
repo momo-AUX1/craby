@@ -1,3 +1,3 @@
-# `@craby/cli-linux-arm64-musl`
+# `@craby/cli-bindings-linux-arm64-musl`
 
-This is the **aarch64-unknown-linux-musl** binary for `@craby/cli`
+This is the **aarch64-unknown-linux-musl** binary for `@craby/cli-bindings`

@@ -7,9 +7,9 @@
   "cpu": [
     "arm64"
   ],
-  "main": "cli.linux-arm64-gnu.node",
+  "main": "cli-bindings.linux-arm64-gnu.node",
   "files": [
-    "cli.linux-arm64-gnu.node"
+    "cli-bindings.linux-arm64-gnu.node"
   ],
   "license": "MIT",
   "engines": {

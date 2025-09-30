@@ -1,5 +1,5 @@
 {
-  "name": "@craby/cli-bindings-win32-x64-msvc",
+  "name": "@craby/cli-bindings-bindings-win32-x64-msvc",
   "version": "0.0.0",
   "os": [
     "win32"
@@ -7,9 +7,9 @@
   "cpu": [
     "x64"
   ],
-  "main": "cli.win32-x64-msvc.node",
+  "main": "cli-bindings.win32-x64-msvc.node",
   "files": [
-    "cli.win32-x64-msvc.node"
+    "cli-bindings.win32-x64-msvc.node"
   ],
   "license": "MIT",
   "engines": {

@@ -7,9 +7,9 @@
   "cpu": [
     "x64"
   ],
-  "main": "cli.darwin-x64.node",
+  "main": "cli-bindings.darwin-x64.node",
   "files": [
-    "cli.darwin-x64.node"
+    "cli-bindings.darwin-x64.node"
   ],
   "license": "MIT",
   "engines": {

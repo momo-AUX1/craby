@@ -1,3 +1,3 @@
-# `@craby/cli-darwin-arm64`
+# `@craby/cli-bindings-darwin-arm64`
 
-This is the **aarch64-apple-darwin** binary for `@craby/cli`
+This is the **aarch64-apple-darwin** binary for `@craby/cli-bindings`

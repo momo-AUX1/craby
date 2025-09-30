@@ -39,7 +39,7 @@
     "node": ">= 18"
   },
   "napi": {
-    "binaryName": "cli",
+    "binaryName": "cli-bindings",
     "esm": true,
     "targets": [
       "x86_64-apple-darwin",

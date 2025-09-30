@@ -1,7 +1,7 @@
 name: CI
 env:
   DEBUG: napi:*
-  APP_NAME: cli
+  APP_NAME: cli-bindings
   PACKAGE_NAME: '@craby/cli-bindings'
   PACKAGE_PATH: packages/cli-bindings
   MACOSX_DEPLOYMENT_TARGET: '10.13'

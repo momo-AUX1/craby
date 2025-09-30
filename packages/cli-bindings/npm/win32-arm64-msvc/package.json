@@ -7,9 +7,9 @@
   "cpu": [
     "arm64"
   ],
-  "main": "cli.win32-arm64-msvc.node",
+  "main": "cli-bindings.win32-arm64-msvc.node",
   "files": [
-    "cli.win32-arm64-msvc.node"
+    "cli-bindings.win32-arm64-msvc.node"
   ],
   "license": "MIT",
   "engines": {
