@@ -16,6 +16,7 @@ pub trait Generator<T>
 where
     T: Template,
 {
+    fn cleanup(ctx: &CodegenContext) -> Result<(), anyhow::Error>;
     fn generate(&self, ctx: &CodegenContext) -> Result<Vec<GenerateResult>, anyhow::Error>;
     fn template_ref(&self) -> &T;
 }

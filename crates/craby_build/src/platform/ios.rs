@@ -56,6 +56,10 @@ fn create_xcframework(config: &CompleteCrabyConfig) -> Result<PathBuf, anyhow::E
     let xcframework_path =
         framework_path.join(format!("lib{}.xcframework", lib_base_name.to_string()));
 
+    if fs::exists(&xcframework_path)? {
+        fs::remove_dir_all(&xcframework_path)?;
+    }
+
     fs::create_dir_all(&xcframework_path)?;
 
     let info_plist_path = xcframework_path.join("Info.plist");

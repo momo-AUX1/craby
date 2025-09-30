@@ -475,6 +475,10 @@ impl RsGenerator {
 }
 
 impl Generator<RsTemplate> for RsGenerator {
+    fn cleanup(_: &CodegenContext) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
+
     fn generate(&self, project: &CodegenContext) -> Result<Vec<GenerateResult>, anyhow::Error> {
         let base_path = crate_dir(&project.root).join("src");
         let template = self.template_ref();

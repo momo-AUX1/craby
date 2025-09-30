@@ -1,22 +1,14 @@
-use std::{fs, path::PathBuf};
+use std::path::PathBuf;
 
-use craby_common::constants::tmp_dir;
 use log::info;
 
 pub struct CleanOptions {
     pub project_root: PathBuf,
 }
 
-pub fn perform(opts: CleanOptions) -> anyhow::Result<()> {
+pub fn perform(_: CleanOptions) -> anyhow::Result<()> {
+    // TODO
     info!("🧹 Cleaning up temporary files...");
-
-    let target = tmp_dir(&opts.project_root);
-    let files = fs::read_dir(target)?;
-    for file in files {
-        let file = file?;
-        fs::remove_file(file.path())?;
-    }
-
     info!("Done!");
 
     Ok(())

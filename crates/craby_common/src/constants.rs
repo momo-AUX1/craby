@@ -30,7 +30,6 @@ pub mod android {
 
 pub mod ios {}
 
-pub const TEMP_DIR: &str = ".craby";
 pub const SPEC_FILE_PREFIX: &str = "Native";
 
 pub fn lib_base_name(name: &SanitizedString) -> String {
@@ -47,10 +46,6 @@ pub fn dest_lib_name(name: &SanitizedString) -> String {
 /// Example: `some_module_impl`
 pub fn impl_mod_name(name: &String) -> String {
     format!("{}_impl", snake_case(name.as_str()))
-}
-
-pub fn tmp_dir(project_root: &PathBuf) -> PathBuf {
-    project_root.join(TEMP_DIR)
 }
 
 pub fn crate_target_dir(project_root: &PathBuf, target: &str) -> PathBuf {

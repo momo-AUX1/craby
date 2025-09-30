@@ -1,4 +1,4 @@
-use std::path::PathBuf;
+use std::{fs, path::PathBuf};
 
 use craby_common::{
     constants::{cxx_bridge_include_dir, cxx_dir},
@@ -539,6 +539,29 @@ impl CxxGenerator {
 }
 
 impl Generator<CxxTemplate> for CxxGenerator {
+    fn cleanup(ctx: &CodegenContext) -> Result<(), anyhow::Error> {
+        let cxx_dir = cxx_dir(&ctx.root);
+
+        fs::read_dir(cxx_dir)?.try_for_each(|entry| -> Result<(), anyhow::Error> {
+            let path = entry?.path();
+            let file_name = path
+                .file_name()
+                .unwrap_or_default()
+                .to_string_lossy()
+                .to_string();
+
+            if file_name.starts_with("Cxx")
+                && (file_name.ends_with("Module.cpp") || file_name.ends_with("Module.hpp"))
+            {
+                fs::remove_file(&path)?;
+            }
+
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+
     fn generate(&self, project: &CodegenContext) -> Result<Vec<GenerateResult>, anyhow::Error> {
         let template = self.template_ref();
         let res = [

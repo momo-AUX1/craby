@@ -4,8 +4,11 @@ use craby_codegen::{
     codegen,
     constants::GENERATED_COMMENT,
     generators::{
-        android_generator::AndroidGenerator, cxx_generator::CxxGenerator,
-        ios_generator::IosGenerator, rs_generator::RsGenerator, types::GeneratorInvoker,
+        android_generator::AndroidGenerator,
+        cxx_generator::CxxGenerator,
+        ios_generator::IosGenerator,
+        rs_generator::RsGenerator,
+        types::{Generator, GeneratorInvoker},
     },
     types::CodegenContext,
 };
@@ -55,6 +58,12 @@ pub fn perform(opts: CodegenOptions) -> anyhow::Result<()> {
         root: opts.project_root,
         schemas,
     };
+
+    debug!("Cleaning up...");
+    AndroidGenerator::cleanup(&ctx)?;
+    IosGenerator::cleanup(&ctx)?;
+    RsGenerator::cleanup(&ctx)?;
+    CxxGenerator::cleanup(&ctx)?;
 
     let mut generate_res = vec![];
     let generators: Vec<Box<dyn GeneratorInvoker>> = vec![

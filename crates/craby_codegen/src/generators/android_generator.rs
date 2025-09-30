@@ -176,6 +176,10 @@ impl AndroidGenerator {
 }
 
 impl Generator<AndroidTemplate> for AndroidGenerator {
+    fn cleanup(_: &CodegenContext) -> Result<(), anyhow::Error> {
+        Ok(())
+    }
+
     fn generate(&self, project: &CodegenContext) -> Result<Vec<GenerateResult>, anyhow::Error> {
         let android_base_path = android_path(&project.root);
         let jni_base_path = jni_base_path(&project.root);
