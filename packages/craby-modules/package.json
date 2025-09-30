@@ -1,6 +1,6 @@
 {
   "name": "craby-modules",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.2",
   "packageManager": "yarn@4.9.2",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -8,19 +8,19 @@
   "exports": {
     ".": {
       "import": {
-        "types": "./dist/index.d.mts",
-        "default": "./dist/index.mjs"
+        "default": "./dist/index.mjs",
+        "types": "./dist/index.d.mts"
       },
       "require": {
-        "types": "./dist/index.d.ts",
-        "default": "./dist/index.js"
+        "default": "./dist/index.js",
+        "types": "./dist/index.d.ts"
       }
     }
   },
   "scripts": {
+    "build": "tsdown",
     "prepack": "yarn build",
-    "typecheck": "tsc --noEmit",
-    "build": "tsdown"
+    "typecheck": "tsc --noEmit"
   },
   "author": "leegeunhyeok <dev.ghlee@gmail.com> (https://github.com/leegeunhyeok)",
   "license": "MIT",

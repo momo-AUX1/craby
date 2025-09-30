@@ -37,6 +37,13 @@ pub fn get_version_from_commit_message() -> Result<Option<String>> {
     }
 }
 
+pub fn is_main_ref() -> bool {
+    match std::env::var("GITHUB_REF") {
+        Ok(branch) => branch == "refs/heads/main",
+        Err(_) => false,
+    }
+}
+
 pub fn collect_packages() -> Result<Vec<PackageInfo>> {
     let output = Command::new("yarn")
         .args(&["workspaces", "list", "--json"])

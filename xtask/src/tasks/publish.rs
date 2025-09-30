@@ -1,5 +1,6 @@
 use crate::utils::{
-    collect_packages, get_version_from_commit_message, validate_package_versions, PackageInfo,
+    collect_packages, get_version_from_commit_message, is_main_ref, validate_package_versions,
+    PackageInfo,
 };
 use anyhow::Result;
 use std::env;
@@ -77,6 +78,11 @@ pub fn run() -> Result<()> {
             return Ok(());
         }
     };
+
+    if !is_main_ref() {
+        println!("Not a main branch, skipping publish");
+        return Ok(());
+    }
 
     let packages = collect_packages()?;
     validate_package_versions(&packages, &version)?;

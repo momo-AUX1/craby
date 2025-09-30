@@ -1,12 +1,12 @@
 {
   "name": "crabygen",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.2",
   "type": "module",
   "bin": "./bin.js",
   "scripts": {
+    "build": "tsdown",
     "prepack": "yarn build",
-    "typecheck": "tsc --noEmit",
-    "build": "tsdown"
+    "typecheck": "tsc --noEmit"
   },
   "files": [
     "dist",

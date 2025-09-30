@@ -1,22 +1,22 @@
 {
   "name": "@craby/cli-bindings",
-  "version": "0.1.0-alpha.3",
+  "version": "0.1.0-alpha.2",
   "license": "MIT",
   "type": "module",
   "main": "./built/index.js",
   "types": "./built/index.d.ts",
   "exports": {
     ".": {
-      "types": "./built/index.d.ts",
-      "default": "./built/index.js"
+      "default": "./built/index.js",
+      "types": "./built/index.d.ts"
     }
   },
   "scripts": {
-    "dev": "yarn build && ./bin.js",
     "artifacts": "napi artifacts --npm-dir npm --output-dir napi",
     "build": "./scripts/build.sh",
-    "version": "napi version",
-    "test": "vitest --run"
+    "dev": "yarn build && ./bin.js",
+    "test": "vitest --run",
+    "version": "napi version"
   },
   "files": [
     "built",
@@ -40,6 +40,7 @@
   },
   "napi": {
     "binaryName": "cli",
+    "esm": true,
     "targets": [
       "x86_64-apple-darwin",
       "x86_64-pc-windows-msvc",
@@ -51,8 +52,7 @@
       "aarch64-unknown-linux-gnu",
       "aarch64-unknown-linux-musl",
       "aarch64-pc-windows-msvc"
-    ],
-    "esm": true
+    ]
   },
   "publishConfig": {
     "access": "public"
