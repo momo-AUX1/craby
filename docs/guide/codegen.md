@@ -76,9 +76,10 @@ Here's how TypeScript types map to generated Rust code:
 | `boolean` | `Boolean` (alias for `bool`) |
 | `number` | `Number` (alias for `f64`) |
 | `string` | `String` (alias for `std::string::String`) |
+| `object` | `struct` (custom struct) |
 | `T[]` | `Array<T>` (alias for `std::vec::Vec<T>`) |
-| `T \| null` | `Nullable<T>` (Custom struct) |
-| `Promise<T>` | `Promise<T>` (alias of `std::result::Result<T, anyhow::Error>`) |
+| `T \| null` | `Nullable<T>` (custom struct) |
+| `Promise<T>` | `Promise<T>` (alias for `std::result::Result<T, anyhow::Error>`) |
 | `enum E { A = 'a' }` | `enum E { A }` |
 | `void` | `Void` (alias for `()`) |
 
@@ -112,7 +113,7 @@ pub enum MyModuleSignal {
 }
 
 // In your impl:
-impl Spec for MyModule {
+impl MyModuleSpec for MyModule {
     fn some_method(&self) {
         self.emit(MyModuleSignal::OnData);
     }

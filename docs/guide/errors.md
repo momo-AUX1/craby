@@ -6,10 +6,10 @@ This guide covers error handling in Craby modules using Promise rejections and e
 
 Craby provides two ways to handle errors:
 
-1. **Rust Panics** - For synchronous errors that propagate to JavaScript
+1. **Panics** - For synchronous errors that propagate to JavaScript
 2. **Promise Rejections** - For recoverable errors in async operations
 
-## Rust Panics
+## Panics
 
 Use the `throw!` macro to throw exceptions that propagate to JavaScript. When you use `throw!`, the panic is handled by `panic::catch_unwind()` and the error is sent to C++ safely. In the C++ layer, a runtime exception is created and thrown to the JavaScript runtime via `jsi::JSError`.
 

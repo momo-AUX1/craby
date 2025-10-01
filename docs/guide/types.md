@@ -6,17 +6,17 @@ This guide explains the type system in Craby and how types are mapped between Ty
 
 Craby automatically converts types between TypeScript, Rust, and C++ at compile-time using zero-cost abstractions.
 
-| TypeScript | Rust | C++ | Description |
-|------------|------|-----|-------------|
-| `number` | `Number` (f64) | `double` | 64-bit floating-point number |
-| `string` | `String` | `std::string` | UTF-8 encoded string |
-| `boolean` | `Boolean` (bool) | `bool` | Boolean value |
-| `void` | `Void` (()) | `void` | No return value |
-| `object` | `struct` | `struct` | Custom object types |
-| `T[]` | `Array<T>` (std::vec) | `std::vector<T>` | Array/list of items |
-| `T \| null` | `Nullable<T>` | `std::optional<T>` | Optional values |
-| `Promise<T>` | `Promise<T>` | `std::shared_ptr<Promise<T>>` | Async operations |
-| `enum` | `enum` | `enum class` | Enumeration types |
+| TypeScript | Rust | C++ |
+|------------|------|-----|
+| `boolean` | `Boolean` (alias for `bool`) | `bool` |
+| `number` | `Number` (alias for `f64`) | `double` |
+| `string` | `String` (alias for `std::string::String`) | `std::string` |
+| `object` | `struct` (custom struct) | `struct` (custom struct) |
+| `T[]` | `Array<T>` (alias for `std::vec::Vec<T>`) | `std::vector<T>` |
+| `T \| null` | `Nullable<T>` (custom struct) | `struct` (custom struct) |
+| `Promise<T>` | `Promise<T>` (alias for `std::result::Result<T, anyhow::Error>`) | `T` (Unwrap `Result<T>`) |
+| `enum` | `enum` | `enum class` |
+| `void` | `Void` (alias for `()`) | `void` |
 
 ## Working with Primitives
 
@@ -33,7 +33,7 @@ export interface Spec extends NativeModule {
 
 **Rust:**
 ```rust
-impl Spec for Calculator {
+impl CalculatorSpec for Calculator {
     fn add(&self, a: Number, b: Number) -> Number {
         a + b
     }
@@ -53,7 +53,7 @@ export interface Spec extends NativeModule {
 
 **Rust:**
 ```rust
-impl Spec for Greeter {
+impl GreeterSpec for Greeter {
     fn greet(&self, name: String) -> String {
         format!("Hello, {}!", name)
     }
@@ -71,7 +71,7 @@ export interface Spec extends NativeModule {
 
 **Rust:**
 ```rust
-impl Spec for Validator {
+impl ValidatorSpec for Validator {
     fn is_valid(&self, value: Boolean) -> Boolean {
         !value  // Negate the boolean
     }
@@ -103,7 +103,7 @@ pub struct User {
     pub email: String,
 }
 
-impl Spec for UserManager {
+impl UserManagerSpec for UserManager {
     fn create_user(&self, name: String, age: Number, email: String) -> User {
         User {
             name,
@@ -146,7 +146,7 @@ pub struct User {
 
 ## Arrays
 
-Arrays map to `Vec<T>` in Rust and are wrapped in the `Array<T>` type.
+Arrays map to `std::vec::Vec<T>` in Rust and are wrapped in the `Array<T>` type.
 
 **TypeScript:**
 ```typescript
@@ -158,7 +158,7 @@ export interface Spec extends NativeModule {
 
 **Rust:**
 ```rust
-impl Spec for ArrayProcessor {
+impl ArrayProcessorSpec for ArrayProcessor {
     fn sum(&self, numbers: Array<Number>) -> Number {
         numbers.iter().sum()
     }
@@ -206,12 +206,12 @@ export interface Spec extends NativeModule {
 
 **Rust:**
 ```rust
-impl Spec for UserService {
+impl UserServiceSpec for UserService {
     fn find_user(&self, id: Number) -> Nullable<User> {
         if id > 0.0 {
-            Nullable::some(User { name: "John".to_string() })
+            Nullable::<User>::some(User { name: "John".to_string() })
         } else {
-            Nullable::none()
+            Nullable::<User>::none()
         }
     }
 
@@ -228,7 +228,7 @@ impl Spec for UserService {
 
 ```rust
 // Create nullable values
-let some_value = Nullable::some(42.0);
+let some_value = Nullable::<Number>::some(42.0);
 let no_value = Nullable::<Number>::none();
 
 // Check if value exists
@@ -273,7 +273,7 @@ pub enum Status {
     Pending,
 }
 
-impl Spec for StatusChecker {
+impl StatusCheckerSpec for StatusChecker {
     fn get_status(&self, status: Status) -> String {
         match status {
             Status::Active => "Currently active".to_string(),
@@ -308,7 +308,7 @@ pub enum Priority {
     High = 2,
 }
 
-impl Spec for TaskManager {
+impl TaskManagerSpec for TaskManager {
     fn set_priority(&self, priority: Priority) -> Void {
         match priority {
             Priority::Low => println!("Low priority"),
@@ -322,7 +322,7 @@ impl Spec for TaskManager {
 
 ## Promises
 
-Promises enable asynchronous operations. When you return a Promise, the C++ layer automatically executes your Rust code in a background thread.
+Promises enable asynchronous operations. When you return a Promise, the C++ layer automatically executes your Rust code in a separate thread.
 
 **TypeScript:**
 ```typescript
@@ -333,9 +333,9 @@ export interface Spec extends NativeModule {
 
 **Rust:**
 ```rust
-impl Spec for AsyncService {
+impl AsyncServiceSpec for AsyncService {
     fn process_async(&self, value: Number) -> Promise<Number> {
-        // Runs in background thread (managed by C++ layer)
+        // Runs in separate thread (managed by C++ layer)
         // Safe to do heavy work here
         if value >= 0.0 {
             promise::resolve(value * 2.0)
@@ -352,6 +352,8 @@ See [Sync vs Async](/guide/sync-vs-async) for more details on async operations.
 
 ### Supported
 
+<div class="tossface">
+
 - ✅ Primitive types (number, string, boolean)
 - ✅ Objects with named properties
 - ✅ Arrays (`T[]`)
@@ -360,9 +362,13 @@ See [Sync vs Async](/guide/sync-vs-async) for more details on async operations.
 - ✅ Enums (string and numeric)
 - ✅ Nested objects and arrays
 
+</div>
+
 ### Not Supported
 
 Cases not listed in the supported types are not supported.
+
+<div class="tossface">
 
 - ❌ Union types (except `T | null`)
 - ❌ Intersection types
@@ -372,3 +378,4 @@ Cases not listed in the supported types are not supported.
 - ❌ `any`, `unknown`, `never`
 - ❌ Class types
 
+</div>

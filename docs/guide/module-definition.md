@@ -197,7 +197,7 @@ struct Counter {
     count: i32,  // Cannot maintain state
 }
 
-impl Spec for Counter {
+impl CounterSpec for Counter {
     fn increment(&self) -> Number {
         self.count += 1;  // Won't work! (It will always be the initial value)
         self.count as f64
@@ -205,7 +205,7 @@ impl Spec for Counter {
 }
 
 // Supported - stateless operations
-impl Spec for Calculator {
+impl CalculatorSpec for Calculator {
     fn add(&self, a: Number, b: Number) -> Number {
         a + b  // Pure function, no state
     }
