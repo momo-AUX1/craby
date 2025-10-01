@@ -18,19 +18,32 @@ Craby was created as an alternative solution to address these limitations. It ai
 
 Craby solves these problems by:
 
-1. **Auto Code Generation**: Define your API once in TypeScript, and Craby generates all the necessary Rust and C++ bridging code
-2. **Type Safety**: Compile-time type checking across TypeScript, Rust, and C++ prevents runtime errors
-3. **Pure C++ Integration**: Direct integration with C++ TurboModule bypasses platform-specific layers for maximum performance
+1. **Pure C++ Integration**: Direct integration with C++ TurboModule bypasses platform-specific layers for maximum performance
+2. **Auto Code Generation**: Define your API once in TypeScript, and Craby generates all the necessary Rust and C++ bridging code
+3. **Type Safety**: Compile-time type checking across TypeScript, Rust, and C++ prevents runtime errors
 4. **Simple Development**: Focus on implementing your business logic in Rust—Craby handles the rest
 
 ## Key Features
 
-### Blazing Fast Performance
+### Performance
 
 Craby achieves superior performance through:
 - **Pure C++ Integration**: Direct integration with C++ TurboModule bypasses platform-specific layers (`ObjCTurboModule`, `JavaTurboModule`)
 - **Zero-Cost FFI**: Rust-to-C++ communication via [cxx](https://cxx.rs/) ensures zero-overhead interop with compile-time safety
 - **Template-Based Types**: User-defined types are processed at compile-time using C++ templates, eliminating runtime type conversion overhead
+
+---
+
+[This benchmark](https://github.com/leegeunhyeok/NitroBenchmarks/pull/1) compares the total execution time when calling a single native method `100,000` times:
+
+| Module       | `addNumbers`   | `addStrings`   |
+|--------------|----------------|----------------|
+| ExpoModules  | 445.21ms (x83) | 427.21ms (x18) |
+| TurboModules | 116.13ms (x21) | 175.27ms (x7)  |
+| NitroModules | 7.07ms (24%)   | 28.53ms (20%)  |
+| CrabyModules | **5.32ms**     | **22.58ms**    |
+
+Note: These benchmarks only compare native method throughput in extreme cases, and do not necessarily reflect real world use-cases. In a real-world app, results may vary. See [repository](https://github.com/leegeunhyeok/NitroBenchmarks) for full context.
 
 ### Automatic Code Generation
 
