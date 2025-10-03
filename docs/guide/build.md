@@ -32,7 +32,7 @@ To integrate with package publishing, we recommend the following configuration:
   "name": "my-module",
   "scripts": {
     "prepack": "npm build",
-    "build": "craby build && tsup",
+    "build": "craby build && tsdown",
   }
 }
 ```

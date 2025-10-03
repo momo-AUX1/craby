@@ -41,7 +41,7 @@
     "prepack": "yarn build",
     "typecheck": "tsc --noEmit",
     "lint": "biome check",
-    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
+    "clean": "craby clean",
     "build": "craby build && tsdown"
   },
   "keywords": [
@@ -62,7 +62,6 @@
     "@biomejs/biome": "2.2.4",
     "@types/react": "^19.0.0",
     "crabygen": "workspace:*",
-    "del-cli": "^7.0.0",
     "react": "19.1.1",
     "react-native": "0.81.4",
     "tsdown": "^0.15.5",

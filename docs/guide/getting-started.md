@@ -15,18 +15,26 @@ Craby development requires **macOS** with **Xcode 12 or higher** for building [*
 Before you begin, make sure you have the following installed:
 
 - **macOS**: Required for building iOS targets
-- **Xcode 12 or higher**: [Download](https://developer.apple.com/xcode)
+- **XCode 12 or higher**: [Download](https://developer.apple.com/xcode)
 - **Node.js 18+**: [Download](https://nodejs.org/)
-- **Rust nightly-2025-08-04**: Install via [rustup](https://rustup.rs/)
-  ```bash
-  curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-  rustup toolchain install nightly-2025-08-04
-  ```
+- **Rust**: Install via [rustup](https://rustup.rs/)
 - **Android NDK**: [Download](https://developer.android.com/ndk/downloads)
-- **ANDROID_NDK_HOME environment variable**: Set to your NDK path
-  ```bash
-  export ANDROID_NDK_HOME=/path/to/android-ndk
-  ```
+
+```bash
+# Set `ANDROID_HOME` and `ANDROID_NDK_HOME`
+export ANDROID_HOME=/path/to/android-sdk
+export ANDROID_NDK_HOME=/path/to/android-ndk
+```
+
+::: info
+
+You can use the `doctor` command to verify that all requirements are met.
+
+```bash
+npx crabygen doctor
+```
+
+:::
 
 ## Installation
 
