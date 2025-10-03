@@ -1,6 +1,5 @@
 use crate::ffi::bridging::*;
 use crate::generated::*;
-use crate::throw;
 use crate::types::*;
 
 pub struct CrabyTest {
@@ -73,6 +72,10 @@ impl CrabyTestSpec for CrabyTest {
     }
 
     fn promise_method(&self, arg: Number) -> Promise<Number> {
+        if arg == 0.0 {
+            throw!("Zero is not allowed");
+        }
+
         if arg >= 0.0 {
             promise::resolve(arg * 2.0)
         } else {
