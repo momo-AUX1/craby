@@ -17,6 +17,7 @@ on:
     tags-ignore:
       - '**'
     paths:
+      - 'crates/**'
       - 'packages/**'
   pull_request: null
 
