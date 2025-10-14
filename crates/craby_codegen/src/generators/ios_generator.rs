@@ -19,6 +19,28 @@ pub enum IosFileType {
 }
 
 impl IosTemplate {
+    /// Generates the iOS module provider implementation.
+    ///
+    /// # Generated Code
+    ///
+    /// ```objc
+    /// #import "CxxMyTestModule.hpp"
+    ///
+    /// #import <ReactCommon/CxxTurboModuleUtils.h>
+    ///
+    /// @interface CrabyMyAppModuleProvider : NSObject
+    /// @end
+    ///
+    /// @implementation CrabyMyAppModuleProvider
+    /// + (void)load {
+    ///   facebook::react::registerCxxModuleToGlobalModuleMap(
+    ///     craby::mymodule::CxxMyTestModule::kModuleName,
+    ///     [](std::shared_ptr<facebook::react::CallInvoker> jsInvoker) {
+    ///       return std::make_shared<craby::mymodule::CxxMyTestModule>(jsInvoker);
+    ///     });
+    /// }
+    /// @end
+    /// ```
     fn module_provider(&self, project: &CodegenContext) -> Result<String, anyhow::Error> {
         let mut cxx_includes = vec![];
         let mut cxx_registers = vec![];

@@ -28,6 +28,12 @@ pub enum CxxFileType {
 }
 
 impl CxxTemplate {
+    /// Converts schema methods to C++ method definitions.
+    ///
+    /// # Generated Code
+    ///
+    /// ```
+    /// ```
     fn cxx_methods(&self, schema: &Schema) -> Result<Vec<CxxMethod>, anyhow::Error> {
         let res = schema
             .methods
@@ -58,6 +64,82 @@ impl CxxTemplate {
     }
 
     /// Returns the complete cxx TurboModule source/header files.
+    ///
+    /// # Generated Code (CPP)
+    ///
+    /// ```cpp
+    /// #include "CxxMyTestModule.hpp"
+    /// #include "cxx.h"
+    /// #include "bridging-generated.hpp"
+    /// #include "utils.hpp"
+    /// #include <thread>
+    /// #include <react/bridging/Bridging.h>
+    ///
+    /// using namespace facebook;
+    ///
+    /// namespace craby {
+    /// namespace mymodule {
+    ///
+    /// CxxMyTestModule::CxxMyTestModule(
+    ///     std::shared_ptr<react::CallInvoker> jsInvoker)
+    ///     : TurboModule(CxxMyTestModule::kModuleName, jsInvoker) {
+    ///   callInvoker_ = std::move(jsInvoker);
+    ///   module_ = std::shared_ptr<craby::bridging::MyTestModule>(
+    ///     craby::bridging::createMyTestModule(reinterpret_cast<uintptr_t>(this)).into_raw(),
+    ///     [](craby::bridging::MyTestModule *ptr) { rust::Box<craby::bridging::MyTestModule>::from_raw(ptr); }
+    ///   );
+    ///
+    ///   methodMap_["multiply"] = MethodMetadata{2, &CxxMyTestModule::multiply};
+    /// }
+    ///
+    /// CxxMyTestModule::~CxxMyTestModule() {
+    ///   // No signals
+    /// }
+    ///
+    /// jsi::Value CxxMyTestModule::multiply(jsi::Runtime &rt,
+    ///                                       react::TurboModule &turboModule,
+    ///                                       const jsi::Value args[],
+    ///                                       size_t count) {
+    ///   // ...
+    /// }
+    ///
+    /// } // namespace mymodule
+    /// } // namespace craby
+    /// ```
+    ///
+    /// # Generated Code (HPP)
+    ///
+    /// ```cpp
+    /// #pragma once
+    ///
+    /// #include "ffi.rs.h"
+    /// #include <memory>
+    /// #include <ReactCommon/TurboModule.h>
+    /// #include <jsi/jsi.h>
+    ///
+    /// namespace craby {
+    /// namespace mymodule {
+    ///
+    /// class JSI_EXPORT CxxMyTestModule : public facebook::react::TurboModule {
+    /// public:
+    ///   static constexpr const char *kModuleName = "MyTestModule";
+    ///
+    ///   CxxMyTestModule(std::shared_ptr<facebook::react::CallInvoker> jsInvoker);
+    ///   ~CxxMyTestModule();
+    ///
+    ///   static facebook::jsi::Value
+    ///   multiply(facebook::jsi::Runtime &rt,
+    ///            facebook::react::TurboModule &turboModule,
+    ///            const facebook::jsi::Value args[], size_t count);
+    ///
+    /// protected:
+    ///   std::shared_ptr<facebook::react::CallInvoker> callInvoker_;
+    ///   std::shared_ptr<craby::bridging::MyTestModule> module_;
+    /// };
+    ///
+    /// } // namespace mymodule
+    /// } // namespace craby
+    /// ```
     fn cxx_mod(&self, schema: &Schema) -> Result<(String, String), anyhow::Error> {
         let flat_name = flat_case(&schema.module_name);
         let cxx_mod = cxx_mod_cls_name(&schema.module_name);
@@ -153,8 +235,6 @@ impl CxxTemplate {
                         }}
 
                         auto callback = args[0].asObject(rt).asFunction(rt);
-                        uint64_t listenerId = nextListenerId_++;
-                        
                         auto callbackRef = std::make_shared<jsi::Function>(std::move(callback));
                         auto name = "{signal_name}";
                         
@@ -167,7 +247,7 @@ impl CxxTemplate {
                           rt,
                           jsi::PropNameID::forAscii(rt, "cleanup"),
                           0,
-                          [listenerId, callbackRef, name](jsi::Runtime& rt, const jsi::Value&, const jsi::Value*, size_t) -> jsi::Value {{
+                          [callbackRef, name](jsi::Runtime& rt, const jsi::Value&, const jsi::Value*, size_t) -> jsi::Value {{
                             std::lock_guard<std::mutex> lock(mutex_);
                             auto& listeners = listenersMap_[name];
                             listeners.erase(
@@ -200,7 +280,6 @@ impl CxxTemplate {
 
             mod_members.extend(vec![
               format!("inline static std::mutex mutex_;"),
-              format!("inline static std::atomic<uint64_t> nextListenerId_;"),
               format!("inline static std::unordered_map<std::string, std::vector<std::shared_ptr<facebook::jsi::Function>>> listenersMap_;"),
             ]);
 
@@ -212,7 +291,6 @@ impl CxxTemplate {
                     r#"
                     void {cxx_mod}::emit(std::string name) {{
                       std::vector<std::shared_ptr<facebook::jsi::Function>> listeners;
-
                       {{
                         std::lock_guard<std::mutex> lock(mutex_);
                         auto it = listenersMap_.find(name);
@@ -318,11 +396,9 @@ impl CxxTemplate {
 
         // ```cpp
         // #include "my_module.hpp"
-        //
         // #include "cxx.h"
         // #include "bridging-generated.hpp"
         // #include "utils.hpp"
-        //
         // #include <thread>
         // #include <react/bridging/Bridging.h>
         //
@@ -335,11 +411,9 @@ impl CxxTemplate {
         let cpp_content = formatdoc! {
             r#"
             {include_stmt}
-
             #include "cxx.h"
             #include "bridging-generated.hpp"
             #include "utils.hpp"
-
             #include <thread>
             #include <react/bridging/Bridging.h>
 
@@ -357,7 +431,6 @@ impl CxxTemplate {
             #pragma once
 
             #include "ffi.rs.h"
-
             #include <memory>
             #include <ReactCommon/TurboModule.h>
             #include <jsi/jsi.h>
@@ -371,6 +444,39 @@ impl CxxTemplate {
         Ok((cpp_content, hpp_content))
     }
 
+    /// Generates C++ React Native bridging templates for custom types.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// #pragma once
+    ///
+    /// #include "cxx.h"
+    /// #include "ffi.rs.h"
+    /// #include <react/bridging/Bridging.h>
+    ///
+    /// using namespace facebook;
+    ///
+    /// namespace facebook {
+    /// namespace react {
+    ///
+    /// template <>
+    /// struct Bridging<rust::String> {
+    ///   static rust::String fromJs(jsi::Runtime& rt, const jsi::Value &value, std::shared_ptr<CallInvoker> callInvoker) {
+    ///     auto str = value.asString(rt).utf8(rt);
+    ///     return rust::String(str);
+    ///   }
+    ///
+    ///   static jsi::Value toJs(jsi::Runtime& rt, const rust::String& value) {
+    ///     return react::bridging::toJs(rt, std::string(value));
+    ///   }
+    /// };
+    ///
+    /// // Additional bridging templates for custom types...
+    ///
+    /// } // namespace react
+    /// } // namespace facebook
+    /// ```
     fn cxx_bridging(&self, schemas: &Vec<Schema>) -> Result<String, anyhow::Error> {
         let bridging_templates = schemas
             .iter()
@@ -384,7 +490,6 @@ impl CxxTemplate {
 
             #include "cxx.h"
             #include "ffi.rs.h"
-
             #include <react/bridging/Bridging.h>
 
             using namespace facebook;
@@ -440,13 +545,64 @@ impl CxxTemplate {
         Ok(cxx_bridging)
     }
 
+    /// Generates the signal manager header file for event emission.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// #pragma once
+    ///
+    /// #include "rust/cxx.h"
+    /// #include <functional>
+    /// #include <memory>
+    /// #include <mutex>
+    /// #include <unordered_map>
+    ///
+    /// namespace craby {
+    /// namespace signals {
+    ///
+    /// using Delegate = std::function<void(const std::string& signalName)>;
+    ///
+    /// class SignalManager {
+    /// public:
+    ///   static SignalManager& getInstance() {
+    ///     static SignalManager instance;
+    ///     return instance;
+    ///   }
+    ///
+    ///   void emit(uintptr_t id, rust::Str name) const {
+    ///     std::lock_guard<std::mutex> lock(mutex_);
+    ///     auto it = delegates_.find(id);
+    ///     if (it != delegates_.end()) {
+    ///       it->second(std::string(name));
+    ///     }
+    ///   }
+    ///
+    ///   void registerDelegate(uintptr_t id, Delegate delegate) const {
+    ///     std::lock_guard<std::mutex> lock(mutex_);
+    ///     delegates_.insert_or_assign(id, delegate);
+    ///   }
+    ///
+    ///   void unregisterDelegate(uintptr_t id) const {
+    ///     std::lock_guard<std::mutex> lock(mutex_);
+    ///     delegates_.erase(id);
+    ///   }
+    ///
+    /// private:
+    ///   SignalManager() = default;
+    ///   mutable std::unordered_map<uintptr_t, Delegate> delegates_;
+    ///   mutable std::mutex mutex_;
+    /// };
+    ///
+    /// } // namespace signals
+    /// } // namespace craby
+    /// ```
     fn cxx_signals(&self) -> Result<String, anyhow::Error> {
         Ok(formatdoc! {
             r#"
             #pragma once
 
             #include "rust/cxx.h"
-
             #include <functional>
             #include <memory>
             #include <mutex>

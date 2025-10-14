@@ -49,6 +49,19 @@ pub struct CxxMethod {
 }
 
 impl TypeAnnotation {
+    /// Converts TypeAnnotation to C++ type representation.
+    ///
+    /// # Generated Code Examples
+    ///
+    /// ```cpp
+    /// bool                          // Boolean
+    /// double                        // Number
+    /// rust::String                  // String
+    /// rust::Vec<double>             // Array<Number>
+    /// craby::bridging::MyEnum       // Enum
+    /// craby::bridging::MyStruct     // Object
+    /// craby::bridging::NullableNumber  // Nullable<Number>
+    /// ```
     pub fn as_cxx_type(&self, mod_name: &String) -> Result<String, anyhow::Error> {
         let cxx_type = match self {
             TypeAnnotation::Boolean => "bool".to_string(),
@@ -112,6 +125,18 @@ impl TypeAnnotation {
         Ok(cxx_type)
     }
 
+    /// Generates default value for C++ types.
+    ///
+    /// # Generated Code Examples
+    ///
+    /// ```cpp
+    /// false                         // Boolean
+    /// 0.0                           // Number
+    /// rust::String()                // String
+    /// rust::Vec<double>()           // Array<Number>
+    /// MyEnum::FirstMember           // Enum
+    /// craby::bridging::MyStruct{}   // Object
+    /// ```
     pub fn as_cxx_default_val(&self, mod_name: &String) -> Result<String, anyhow::Error> {
         let default_val = match self {
             TypeAnnotation::Boolean => "false".to_string(),
@@ -222,6 +247,36 @@ impl TypeAnnotation {
 }
 
 impl Method {
+    /// Converts schema Method to C++ TurboModule method implementation.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// jsi::Value CxxMyTestModule::multiply(jsi::Runtime &rt,
+    ///                                       react::TurboModule &turboModule,
+    ///                                       const jsi::Value args[],
+    ///                                       size_t count) {
+    ///   auto &thisModule = static_cast<CxxMyTestModule &>(turboModule);
+    ///   auto callInvoker = thisModule.callInvoker_;
+    ///   auto it_ = thisModule.module_;
+    ///
+    ///   try {
+    ///     if (2 != count) {
+    ///       throw jsi::JSError(rt, "Expected 2 arguments");
+    ///     }
+    ///
+    ///     auto arg0 = react::bridging::fromJs<double>(rt, args[0], callInvoker);
+    ///     auto arg1 = react::bridging::fromJs<double>(rt, args[1], callInvoker);
+    ///     auto ret = craby::bridging::multiply(*it_, arg0, arg1);
+    ///
+    ///     return react::bridging::toJs(rt, ret);
+    ///   } catch (const jsi::JSError &err) {
+    ///     throw err;
+    ///   } catch (const std::exception &err) {
+    ///     throw jsi::JSError(rt, errorMessage(err));
+    ///   }
+    /// }
+    /// ```
     pub fn as_cxx_method(&self, mod_name: &String) -> Result<CxxMethod, anyhow::Error> {
         // ["arg0", "arg1", "arg2"]
         let mut args = Vec::with_capacity(self.params.len() + 1);
@@ -353,7 +408,7 @@ impl Method {
             args_count = args_count,
         };
 
-        let invoke_stmts = [args_decls, invoke_stmts].join("\n");
+        let invoke_stmts = [args_decls, invoke_stmts].join("\n").trim().to_string();
 
         let impl_func = formatdoc! {
             r#"
@@ -393,6 +448,34 @@ impl Method {
 }
 
 impl Schema {
+    /// Generates C++ bridging templates for custom types (structs, enums, nullables).
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// template <>
+    /// struct Bridging<craby::bridging::MyStruct> {
+    ///   static craby::bridging::MyStruct fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+    ///     auto obj = value.asObject(rt);
+    ///     auto obj$foo = obj.getProperty(rt, "foo");
+    ///     auto _obj$foo = react::bridging::fromJs<rust::String>(rt, obj$foo, callInvoker);
+    ///
+    ///     craby::bridging::MyStruct ret = {
+    ///       _obj$foo
+    ///     };
+    ///
+    ///     return ret;
+    ///   }
+    ///
+    ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::MyStruct value) {
+    ///     jsi::Object obj = jsi::Object(rt);
+    ///     auto _obj$foo = react::bridging::toJs(rt, value.foo);
+    ///     obj.setProperty(rt, "foo", _obj$foo);
+    ///
+    ///     return jsi::Value(rt, obj);
+    ///   }
+    /// };
+    /// ```
     pub fn as_cxx_bridging_templates(&self) -> Result<Vec<String>, anyhow::Error> {
         let mut bridging_templates = BTreeMap::new();
         let mut enum_bridging_templates = BTreeMap::new();
@@ -439,6 +522,33 @@ impl Schema {
         Ok(ordered_templates)
     }
 
+    /// Collects all nullable types from schema to generate bridging templates.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// template <>
+    /// struct Bridging<craby::bridging::NullableNumber> {
+    ///   static craby::bridging::NullableNumber fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+    ///     if (value.isNull()) {
+    ///       return craby::bridging::NullableNumber{true, 0.0};
+    ///     }
+    ///
+    ///     auto val = react::bridging::fromJs<double>(rt, value, callInvoker);
+    ///     auto ret = craby::bridging::NullableNumber{false, val};
+    ///
+    ///     return ret;
+    ///   }
+    ///
+    ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::NullableNumber value) {
+    ///     if (value.null) {
+    ///       return jsi::Value::null();
+    ///     }
+    ///
+    ///     return react::bridging::toJs(rt, value.val);
+    ///   }
+    /// };
+    /// ```
     pub fn collect_nullable_types(&self) -> Result<BTreeMap<String, String>, anyhow::Error> {
         // {
         //   "craby::bridging::NullableFoo": "(code)",
@@ -526,6 +636,36 @@ pub mod template {
         utils::indent_str,
     };
 
+    /// Generates C++ bridging template for struct/object types.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// template <>
+    /// struct Bridging<craby::bridging::MyStruct> {
+    ///   static craby::bridging::MyStruct fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+    ///     auto obj = value.asObject(rt);
+    ///     auto obj$foo = obj.getProperty(rt, "foo");
+    ///
+    ///     auto _obj$foo = react::bridging::fromJs<rust::String>(rt, value.foo, callInvoker);
+    ///
+    ///     craby::bridging::MyStruct ret = {
+    ///       _obj$foo
+    ///     };
+    ///
+    ///     return ret;
+    ///   }
+    ///
+    ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::MyStruct value) {
+    ///     jsi::Object obj = jsi::Object(rt);
+    ///     auto _obj$foo = react::bridging::toJs(rt, value.foo);
+    ///
+    ///     obj.setProperty(rt, "foo", _obj$foo);
+    ///
+    ///     return jsi::Value(rt, obj);
+    ///   }
+    /// };
+    /// ```
     pub fn cxx_struct_bridging_template(
         mod_name: &String,
         obj: &ObjectTypeAnnotation,
@@ -610,6 +750,36 @@ pub mod template {
         Ok(template)
     }
 
+    /// Generates C++ bridging template for enum types.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// template <>
+    /// struct Bridging<craby::bridging::MyEnum> {
+    ///   static craby::bridging::MyEnum fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+    ///     auto raw = value.asString(rt).utf8(rt);
+    ///     if (raw == "foo") {
+    ///       return craby::bridging::MyEnum::Foo;
+    ///     } else if (raw == "bar") {
+    ///       return craby::bridging::MyEnum::Bar;
+    ///     } else {
+    ///       throw jsi::JSError(rt, "Invalid enum value (MyEnum)");
+    ///     }
+    ///   }
+    ///
+    ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::MyEnum value) {
+    ///     switch (value) {
+    ///       case craby::bridging::MyEnum::Foo:
+    ///         return react::bridging::toJs(rt, "foo");
+    ///       case craby::bridging::MyEnum::Bar:
+    ///         return react::bridging::toJs(rt, "bar");
+    ///       default:
+    ///         throw jsi::JSError(rt, "Invalid enum value (MyEnum)");
+    ///     }
+    ///   }
+    /// };
+    /// ```
     pub fn cxx_enum_bridging_template(
         enum_spec: &EnumTypeAnnotation,
     ) -> Result<String, anyhow::Error> {
@@ -761,6 +931,33 @@ pub mod template {
         Ok(template)
     }
 
+    /// Generates C++ bridging template for nullable types.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// template <>
+    /// struct Bridging<craby::bridging::NullableNumber> {
+    ///   static craby::bridging::NullableNumber fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+    ///     if (value.isNull()) {
+    ///       return craby::bridging::NullableNumber{true, 0.0};
+    ///     }
+    ///
+    ///     auto val = react::bridging::fromJs<double>(rt, value, callInvoker);
+    ///     auto ret = craby::bridging::NullableNumber{false, val};
+    ///
+    ///     return ret;
+    ///   }
+    ///
+    ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::NullableNumber value) {
+    ///     if (value.null) {
+    ///       return jsi::Value::null();
+    ///     }
+    ///
+    ///     return react::bridging::toJs(rt, value.val);
+    ///   }
+    /// };
+    /// ```
     pub fn cxx_nullable_bridging_template(
         mod_name: &String,
         nullable_namespace: &String,
@@ -798,7 +995,22 @@ pub mod template {
         Ok(template)
     }
 
-    /// Returns the cxx JSI bridging (`fromJs`, `toJs`) template.
+    /// Generates a generic C++ JSI bridging template.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// template <>
+    /// struct Bridging<TargetType> {
+    ///   static TargetType fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+    ///     // fromJs implementation
+    ///   }
+    ///
+    ///   static jsi::Value toJs(jsi::Runtime &rt, TargetType value) {
+    ///     // toJs implementation
+    ///   }
+    /// };
+    /// ```
     pub fn cxx_bridging_template(
         target_type: &String,
         from_js_impl: String,
@@ -822,10 +1034,26 @@ pub mod template {
         }
     }
 
+    /// Generates C++ argument reference expression.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// args[0]  // idx = 0
+    /// args[1]  // idx = 1
+    /// ```
     pub fn cxx_arg_ref(idx: usize) -> String {
         format!("args[{}]", idx)
     }
 
+    /// Generates C++ argument variable name.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cpp
+    /// arg0  // idx = 0
+    /// arg1  // idx = 1
+    /// ```
     pub fn cxx_arg_var(idx: usize) -> String {
         format!("arg{}", idx)
     }

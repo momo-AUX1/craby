@@ -31,6 +31,8 @@ impl AndroidTemplate {
     }
 
     /// Returns `JNI_OnLoad` function implementation
+    /// 
+    /// # Generated Code
     ///
     /// ```cpp
     /// jint JNI_OnLoad(JavaVM *vm, void *reserved) {
@@ -84,6 +86,61 @@ impl AndroidTemplate {
         Ok(content)
     }
 
+    /// Generates the CMakeLists.txt for Android native module build configuration.
+    ///
+    /// # Generated Code
+    ///
+    /// ```cmake
+    /// cmake_minimum_required(VERSION 3.13)
+    ///
+    /// project(craby-my-app)
+    ///
+    /// set (CMAKE_VERBOSE_MAKEFILE ON)
+    /// set (CMAKE_CXX_STANDARD 20)
+    ///
+    /// find_package(ReactAndroid REQUIRED CONFIG)
+    ///
+    /// # Import the pre-built Craby library
+    /// add_library(my-app-lib STATIC IMPORTED)
+    /// set_target_properties(my-app-lib PROPERTIES
+    ///   IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/src/main/jni/libs/${ANDROID_ABI}/libcraby_my_app.a"
+    /// )
+    /// target_include_directories(my-app-lib INTERFACE
+    ///   "${CMAKE_SOURCE_DIR}/src/main/jni/include"
+    /// )
+    ///
+    /// # Generated C++ source files by Craby
+    /// add_library(cxx-my-app SHARED
+    ///   src/main/jni/OnLoad.cpp
+    ///   src/main/jni/src/ffi.rs.cc
+    ///   ../cpp/CxxMyTestModule.cpp
+    /// )
+    /// target_include_directories(cxx-my-app PRIVATE
+    ///   ../cpp
+    /// )
+    ///
+    /// target_link_libraries(cxx-my-app
+    ///   # android
+    ///   ReactAndroid::reactnative
+    ///   ReactAndroid::jsi
+    ///   # my-app-lib
+    ///   my-app-lib
+    /// )
+    /// 
+    /// # From ReactAndroid/cmake-utils/folly-flags.cmake
+    /// target_compile_definitions(cxx-craby-test PRIVATE
+    ///   -DFOLLY_NO_CONFIG=1
+    ///   -DFOLLY_HAVE_CLOCK_GETTIME=1
+    ///   -DFOLLY_USE_LIBCPP=1
+    ///   -DFOLLY_CFG_NO_COROUTINES=1
+    ///   -DFOLLY_MOBILE=1
+    ///   -DFOLLY_HAVE_RECVMMSG=1
+    ///   -DFOLLY_HAVE_PTHREAD=1
+    ///   # Once we target android-23 above, we can comment
+    ///   # the following line. NDK uses GNU style stderror_r() after API 23.
+    ///   -DFOLLY_HAVE_XSI_STRERROR_R=1
+    /// )
+    /// ```
     fn cmakelists(&self, project: &CodegenContext) -> String {
         let kebab_name = kebab_case(&project.name);
         let lib_name = dest_lib_name(&SanitizedString::from(&project.name));

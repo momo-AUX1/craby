@@ -74,7 +74,20 @@ pub struct RsCxxBridge {
 }
 
 impl TypeAnnotation {
-    /// Returns the Rust type for the given `TypeAnnotation`.
+    /// Converts TypeAnnotation to Rust type representation.
+    ///
+    /// # Generated Code Examples
+    ///
+    /// ```rust,ignore
+    /// bool                          // Boolean
+    /// f64                           // Number
+    /// String                        // String
+    /// Vec<f64>                      // Array<Number>
+    /// MyEnum                        // Enum
+    /// MyStruct                      // Object
+    /// NullableNumber                // Nullable<Number>
+    /// Result<f64, anyhow::Error>    // Promise<Number>
+    /// ```
     pub fn as_rs_type(&self) -> Result<RsType, anyhow::Error> {
         let rs_type = match self {
             TypeAnnotation::Void => "()".to_string(),
@@ -146,7 +159,16 @@ impl TypeAnnotation {
         Ok(RsType(rs_type))
     }
 
-    /// Returns the Rust type for the given `TypeAnnotation` that is used in the cxx extern function.
+    /// Converts TypeAnnotation to Rust FFI bridge type for cxx extern.
+    ///
+    /// # Generated Code Examples
+    ///
+    /// ```rust,ignore
+    /// bool                          // Boolean
+    /// f64                           // Number
+    /// String                        // String
+    /// Result<f64>                   // Promise<Number> (shortened for FFI)
+    /// ```
     pub fn as_rs_bridge_type(&self) -> Result<RsBridgeType, anyhow::Error> {
         let extern_type = match self {
             TypeAnnotation::Promise(resolve_type) => {
@@ -158,6 +180,18 @@ impl TypeAnnotation {
         Ok(RsBridgeType(extern_type))
     }
 
+    /// Converts TypeAnnotation to user-facing Rust implementation type.
+    ///
+    /// # Generated Code Examples
+    ///
+    /// ```rust,ignore
+    /// Boolean                       // Boolean (aliased bool)
+    /// Number                        // Number (aliased f64)
+    /// String                        // String
+    /// Array<Number>                 // Array<Number>
+    /// Promise<Number>               // Promise<Number>
+    /// Nullable<Number>              // Nullable<Number>
+    /// ```
     pub fn as_rs_impl_type(&self) -> Result<RsImplType, anyhow::Error> {
         let rs_type = match self {
             TypeAnnotation::Void => "Void".to_string(),
@@ -187,6 +221,19 @@ impl TypeAnnotation {
         Ok(RsImplType(rs_type))
     }
 
+    /// Generates default value for Rust types.
+    ///
+    /// # Generated Code Examples
+    ///
+    /// ```rust,ignore
+    /// false                         // Boolean
+    /// 0.0                           // Number
+    /// String::default()             // String
+    /// Vec::default()                // Array
+    /// MyEnum::default()             // Enum
+    /// MyStruct::default()           // Object
+    /// NullableNumber::default()     // Nullable<Number>
+    /// ```
     pub fn as_rs_default_val(&self) -> Result<String, anyhow::Error> {
         let default_val = match self {
             TypeAnnotation::Boolean => "false".to_string(),
@@ -216,6 +263,14 @@ impl TypeAnnotation {
 }
 
 impl Method {
+    /// Converts Method to Rust trait method signature.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// fn multiply(&mut self, a: Number, b: Number) -> Number
+    /// fn add_async(&mut self, a: Number, b: Number) -> Promise<Number>
+    /// ```
     pub fn try_into_impl_sig(&self) -> Result<String, anyhow::Error> {
         let return_type = self.ret_type.as_rs_impl_type()?.0;
         let params_sig = std::iter::once("&mut self".to_string())
@@ -246,11 +301,29 @@ impl Method {
 }
 
 impl Param {
+    /// Converts parameter to FFI function signature.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// a: f64
+    /// name: String
+    /// items: Vec<MyStruct>
+    /// ```
     pub fn try_into_cxx_sig(&self) -> Result<String, anyhow::Error> {
         let param_type = self.type_annotation.as_rs_type()?.0;
         Ok(format!("{}: {}", snake_case(&self.name), param_type))
     }
 
+    /// Converts parameter to implementation function signature.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// a: Number
+    /// name: String
+    /// items: Array<MyStruct>
+    /// ```
     pub fn try_into_impl_sig(&self) -> Result<String, anyhow::Error> {
         let param_type = self.type_annotation.as_rs_impl_type()?.0;
         Ok(format!("{}: {}", snake_case(&self.name), param_type))
@@ -258,7 +331,32 @@ impl Param {
 }
 
 impl Schema {
-    /// Returns the Rust cxx bridging function declaration and implementation for the `FunctionSpec`.
+    /// Generates complete Rust FFI bridge including externs, structs, enums, and implementations.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// // In ffi.rs extern block:
+    /// type MyModule;
+    ///
+    /// #[cxx_name = "createMyModule"]
+    /// fn create_my_module(id: usize) -> Box<MyModule>;
+    ///
+    /// #[cxx_name = "multiply"]
+    /// fn my_module_multiply(it_: &mut MyModule, a: f64, b: f64) -> Result<f64>;
+    ///
+    /// // Implementation:
+    /// fn create_my_module(id: usize) -> Box<MyModule> {
+    ///     Box::new(MyModule::new(id))
+    /// }
+    ///
+    /// fn my_module_multiply(it_: &mut MyModule, a: f64, b: f64) -> Result<f64> {
+    ///     catch_panic!({
+    ///         let ret = it_.multiply(a, b);
+    ///         ret
+    ///     })
+    /// }
+    /// ```
     pub fn as_rs_cxx_bridge(&self) -> Result<RsCxxBridge, anyhow::Error> {
         let mut func_extern_sigs = Vec::with_capacity(self.methods.len() + 1);
         let mut func_impls = Vec::with_capacity(self.methods.len() + 1);
@@ -480,6 +578,26 @@ impl Schema {
         })
     }
 
+    /// Collects and generates all type implementations (Default, From traits).
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// impl Default for NullableNumber {
+    ///     fn default() -> Self {
+    ///         NullableNumber {
+    ///             null: true,
+    ///             val: 0.0,
+    ///         }
+    ///     }
+    /// }
+    ///
+    /// impl From<NullableNumber> for Nullable<Number> {
+    ///     fn from(val: NullableNumber) -> Self {
+    ///         Nullable::new(if val.null { None } else { Some(val.val) })
+    ///     }
+    /// }
+    /// ```
     pub fn try_collect_type_impls(
         &self,
         type_impls: &mut BTreeMap<String, String>,
@@ -619,6 +737,17 @@ pub mod template {
         utils::indent_str,
     };
 
+    /// Generates Rust struct definition for FFI.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// struct MyStruct {
+    ///     foo: String,
+    ///     bar: f64,
+    ///     baz: bool,
+    /// }
+    /// ```
     pub fn as_struct_def(obj: &ObjectTypeAnnotation) -> Result<String, anyhow::Error> {
         let mut struct_defs = vec![];
         let mut props = Vec::with_capacity(obj.props.len());
@@ -668,6 +797,21 @@ pub mod template {
         Ok(struct_defs.join("\n\n"))
     }
 
+    /// Generates Default implementation for struct types.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// impl Default for MyStruct {
+    ///     fn default() -> Self {
+    ///         MyStruct {
+    ///             foo: String::default(),
+    ///             bar: 0.0,
+    ///             baz: false,
+    ///         }
+    ///     }
+    /// }
+    /// ```
     pub fn alias_default_impl(obj: &ObjectTypeAnnotation) -> Result<String, anyhow::Error> {
         let mut default_impls = vec![];
         let mut props_with_default_val = Vec::with_capacity(obj.props.len());
@@ -745,6 +889,17 @@ pub mod template {
         Ok(default_impls.join("\n\n"))
     }
 
+    /// Generates Default implementation for enum types.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// impl Default for MyEnum {
+    ///     fn default() -> Self {
+    ///         MyEnum::FirstMember
+    ///     }
+    /// }
+    /// ```
     pub fn enum_default_impl(enum_schema: &EnumTypeAnnotation) -> Result<String, anyhow::Error> {
         let first_member = enum_schema
             .members

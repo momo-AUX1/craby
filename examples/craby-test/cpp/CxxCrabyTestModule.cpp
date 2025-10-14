@@ -316,7 +316,6 @@ jsi::Value CxxCrabyTestModule::getState(jsi::Runtime &rt,
       throw jsi::JSError(rt, "Expected 0 argument");
     }
 
-
     auto ret = craby::bridging::getState(*it_);
 
     return react::bridging::toJs(rt, ret);
@@ -339,7 +338,6 @@ jsi::Value CxxCrabyTestModule::camelMethod(jsi::Runtime &rt,
     if (0 != count) {
       throw jsi::JSError(rt, "Expected 0 argument");
     }
-
 
     craby::bridging::camelMethod(*it_);
 
@@ -364,7 +362,6 @@ jsi::Value CxxCrabyTestModule::pascalMethod(jsi::Runtime &rt,
       throw jsi::JSError(rt, "Expected 0 argument");
     }
 
-
     craby::bridging::pascalMethod(*it_);
 
     return jsi::Value::undefined();
@@ -388,7 +385,6 @@ jsi::Value CxxCrabyTestModule::snakeMethod(jsi::Runtime &rt,
       throw jsi::JSError(rt, "Expected 0 argument");
     }
 
-
     craby::bridging::snakeMethod(*it_);
 
     return jsi::Value::undefined();
@@ -411,7 +407,6 @@ jsi::Value CxxCrabyTestModule::triggerSignal(jsi::Runtime &rt,
     if (0 != count) {
       throw jsi::JSError(rt, "Expected 0 argument");
     }
-
 
     craby::bridging::triggerSignal(*it_);
 

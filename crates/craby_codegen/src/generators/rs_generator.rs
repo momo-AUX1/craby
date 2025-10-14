@@ -57,6 +57,34 @@ impl RsTemplate {
         Ok(res)
     }
 
+    /// Generates Rust FFI extern declarations for C++ bridging.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// #[cxx::bridge(namespace = "craby::bridging")]
+    /// pub mod bridging {
+    ///     struct MyStruct {
+    ///         foo: String,
+    ///         bar: f64,
+    ///     }
+    ///
+    ///     enum MyEnum {
+    ///         Foo,
+    ///         Bar,
+    ///     }
+    ///
+    ///     extern "Rust" {
+    ///         type MyModule;
+    ///
+    ///         #[cxx_name = "createMyModule"]
+    ///         fn create_my_module(id: usize) -> Box<MyModule>;
+    ///
+    ///         #[cxx_name = "multiply"]
+    ///         fn my_module_multiply(it_: &mut MyModule, a: f64, b: f64) -> Result<f64>;
+    ///     }
+    /// }
+    /// ```
     fn rs_cxx_extern(&self, rs_cxx_bridges: &Vec<RsCxxBridge>, has_signals: bool) -> String {
         let (impl_types, cxx_externs, struct_defs, enum_defs) = rs_cxx_bridges.iter().fold(
             (vec![], vec![], vec![], vec![]),
@@ -113,6 +141,22 @@ impl RsTemplate {
         }
     }
 
+    /// Generates Rust FFI function implementations.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// fn create_my_module(id: usize) -> Box<MyModule> {
+    ///     Box::new(MyModule::new(id))
+    /// }
+    ///
+    /// fn my_module_multiply(it_: &mut MyModule, a: f64, b: f64) -> Result<f64> {
+    ///     catch_panic!({
+    ///         let ret = it_.multiply(a, b);
+    ///         ret
+    ///     })
+    /// }
+    /// ```
     fn rs_cxx_impl(&self, rs_cxx_bridges: &Vec<RsCxxBridge>) -> Vec<String> {
         rs_cxx_bridges
             .iter()
@@ -206,6 +250,33 @@ impl RsTemplate {
         Ok(content)
     }
 
+    /// Generates default implementation structure for module.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// use crate::ffi::bridging::*;
+    /// use crate::generated::*;
+    /// use crate::types::*;
+    ///
+    /// pub struct MyModule {
+    ///     id: usize,
+    /// }
+    ///
+    /// impl MyModuleSpec for MyModule {
+    ///     fn new(id: usize) -> Self {
+    ///         MyModule { id }
+    ///     }
+    ///
+    ///     fn id(&self) -> usize {
+    ///         self.id
+    ///     }
+    ///
+    ///     fn multiply(&mut self, a: Number, b: Number) -> Number {
+    ///         unimplemented!();
+    ///     }
+    /// }
+    /// ```
     fn rs_impl(&self, schema: &Schema) -> Result<String, anyhow::Error> {
         let mod_name = pascal_case(schema.module_name.as_str());
         let trait_name = pascal_case(format!("{}Spec", schema.module_name).as_str());
@@ -363,7 +434,48 @@ impl RsTemplate {
         Ok(content)
     }
 
-    /// Generate the `types.rs`
+    /// Generates the `types.rs` with common type aliases and utilities.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// pub type Boolean = bool;
+    /// pub type Number = f64;
+    /// pub type String = std::string::String;
+    /// pub type Array<T> = std::vec::Vec<T>;
+    /// pub type Promise<T> = std::result::Result<T, anyhow::Error>;
+    /// pub type Void = ();
+    ///
+    /// pub mod promise {
+    ///     use super::Promise;
+    ///
+    ///     pub fn resolve<T>(val: T) -> Promise<T> {
+    ///         Ok(val)
+    ///     }
+    ///
+    ///     pub fn reject<T>(err: impl AsRef<str>) -> Promise<T> {
+    ///         Err(anyhow::anyhow!(err.as_ref().to_string()))
+    ///     }
+    /// }
+    ///
+    /// pub struct Nullable<T> {
+    ///     val: Option<T>,
+    /// }
+    ///
+    /// impl<T> Nullable<T> {
+    ///     pub fn new(val: Option<T>) -> Self {
+    ///         Nullable { val }
+    ///     }
+    ///
+    ///     pub fn some(val: T) -> Self {
+    ///         Nullable { val: Some(val) }
+    ///     }
+    ///
+    ///     pub fn none() -> Self {
+    ///         Nullable { val: None }
+    ///     }
+    /// }
+    /// ```
     fn types_rs(&self) -> String {
         formatdoc! {
             r#"
@@ -420,6 +532,34 @@ impl RsTemplate {
         }
     }
 
+    /// Generates utility macros for error handling.
+    ///
+    /// # Generated Code
+    ///
+    /// ```rust,ignore
+    /// #[macro_export]
+    /// macro_rules! throw {
+    ///     ($($arg:tt)*) => {{
+    ///         panic!($($arg)*)
+    ///     }};
+    /// }
+    ///
+    /// #[macro_export]
+    /// macro_rules! catch_panic {
+    ///     ($expr:expr) => {{
+    ///         std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| $expr)).map_err(|e| {
+    ///             let msg = if let Some(s) = e.downcast_ref::<&str>() {
+    ///                 (*s).to_string()
+    ///             } else if let Some(s) = e.downcast_ref::<String>() {
+    ///                 s.clone()
+    ///             } else {
+    ///                 "Unknown panic occurred".to_string()
+    ///             };
+    ///             anyhow::anyhow!(msg)
+    ///         })
+    ///     }};
+    /// }
+    /// ```
     fn macros_rs(&self) -> String {
         formatdoc! {
             r#"

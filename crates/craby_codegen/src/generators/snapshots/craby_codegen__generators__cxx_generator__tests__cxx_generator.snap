@@ -4,11 +4,9 @@ expression: result
 ---
 ./cpp/CxxCrabyTestModule.cpp
 #include "CxxCrabyTestModule.hpp"
-
 #include "cxx.h"
 #include "bridging-generated.hpp"
 #include "utils.hpp"
-
 #include <thread>
 #include <react/bridging/Bridging.h>
 
@@ -54,7 +52,6 @@ CxxCrabyTestModule::~CxxCrabyTestModule() {
 
 void CxxCrabyTestModule::emit(std::string name) {
   std::vector<std::shared_ptr<facebook::jsi::Function>> listeners;
-
   {
     std::lock_guard<std::mutex> lock(mutex_);
     auto it = listenersMap_.find(name);
@@ -369,8 +366,6 @@ jsi::Value CxxCrabyTestModule::onSignal(jsi::Runtime &rt,
     }
 
     auto callback = args[0].asObject(rt).asFunction(rt);
-    uint64_t listenerId = nextListenerId_++;
-    
     auto callbackRef = std::make_shared<jsi::Function>(std::move(callback));
     auto name = "onSignal";
     
@@ -383,7 +378,7 @@ jsi::Value CxxCrabyTestModule::onSignal(jsi::Runtime &rt,
       rt,
       jsi::PropNameID::forAscii(rt, "cleanup"),
       0,
-      [listenerId, callbackRef, name](jsi::Runtime& rt, const jsi::Value&, const jsi::Value*, size_t) -> jsi::Value {
+      [callbackRef, name](jsi::Runtime& rt, const jsi::Value&, const jsi::Value*, size_t) -> jsi::Value {
         std::lock_guard<std::mutex> lock(mutex_);
         auto& listeners = listenersMap_[name];
         listeners.erase(
@@ -415,7 +410,6 @@ jsi::Value CxxCrabyTestModule::onSignal(jsi::Runtime &rt,
 #pragma once
 
 #include "ffi.rs.h"
-
 #include <memory>
 #include <ReactCommon/TurboModule.h>
 #include <jsi/jsi.h>
@@ -427,7 +421,6 @@ class JSI_EXPORT CxxCrabyTestModule : public facebook::react::TurboModule {
 public:
   static constexpr const char *kModuleName = "CrabyTest";
   inline static std::mutex mutex_;
-  inline static std::atomic<uint64_t> nextListenerId_;
   inline static std::unordered_map<std::string, std::vector<std::shared_ptr<facebook::jsi::Function>>> listenersMap_;
 
   CxxCrabyTestModule(std::shared_ptr<facebook::react::CallInvoker> jsInvoker);
@@ -508,7 +501,6 @@ protected:
 
 #include "cxx.h"
 #include "ffi.rs.h"
-
 #include <react/bridging/Bridging.h>
 
 using namespace facebook;
@@ -773,7 +765,6 @@ struct Bridging<craby::bridging::NullableNumber> {
 #pragma once
 
 #include "rust/cxx.h"
-
 #include <functional>
 #include <memory>
 #include <mutex>
