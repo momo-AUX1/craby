@@ -1,10 +1,8 @@
-require "json"
-
-package = JSON.parse(File.read(File.join(__dir__, "package.json")))
+versionrequire "json"
 
 Pod::Spec.new do |s|
   s.name         = "CrabyTest"
-  s.version      = package["version"]
+  s.version      = "0.1.0"
   s.summary      = package["description"]
   s.homepage     = package["homepage"]
   s.license      = package["license"]

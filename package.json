@@ -1,5 +1,6 @@
 {
   "name": "craby",
+  "private": true,
   "workspaces": [
     "examples/*",
     "packages/*",
