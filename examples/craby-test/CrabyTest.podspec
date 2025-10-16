@@ -1,12 +1,10 @@
-versionrequire "json"
-
 Pod::Spec.new do |s|
   s.name         = "CrabyTest"
   s.version      = "0.1.0"
-  s.summary      = package["description"]
-  s.homepage     = package["homepage"]
-  s.license      = package["license"]
-  s.authors      = package["author"]
+  s.summary      = "Craby test module"
+  s.homepage     = "https://github.com/leegeunhyeok/craby"
+  s.license      = "MIT"
+  s.authors      = "leegeunhyeok <dev.ghlee@gmail.com> (https://github.com/leegeunhyeok)"
 
   s.platforms    = { :ios => min_ios_version_supported }
   s.source       = { :git => "https://github.com/leegeunhyeok/craby.git", :tag => "#{s.version}" }
