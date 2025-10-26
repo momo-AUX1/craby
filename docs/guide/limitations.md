@@ -11,6 +11,10 @@ Craby does not support platform-specific APIs that require direct access to nati
 - Platform-specific services (e.g., location services, notifications, background tasks)
 - Direct integration with platform SDKs (e.g., ARKit, MLKit, Firebase native modules)
 
+:::info
+App data I/O (File I/O) operations are fully supported in Craby. For more details, refer to the [File IO guide](/guide/file-io).
+:::
+
 ## TurboModule Features
 
 Certain standard TurboModule capabilities are not supported:

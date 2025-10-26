@@ -40,7 +40,7 @@ Craby achieves superior performance through:
 | Module       | `addNumbers`   | `addStrings`   |
 | ------------ | -------------- | -------------- |
 | ExpoModules  | 445.21ms (x83) | 427.21ms (x27) |
-| TurboModules | 116.13ms (x21) | 175.27ms (x11)  |
+| TurboModules | 116.13ms (x21) | 175.27ms (x11) |
 | NitroModules | 7.07ms (24%)   | 28.53ms (80%)  |
 | CrabyModules | **5.32ms**     | **15.75ms**    |
 
@@ -80,8 +80,9 @@ Ideal use cases:
 
 <div class="tossface">
 
-- ✅ Performance-critical native modules (e.g., large-scale data processing, cryptographic operations, real-time parsing)
-- ✅ Building high-performance modules in Rust with type safety
+- <span class="tossface">✅</span> Performance-critical native modules (e.g., large-scale data processing, cryptographic operations, real-time parsing)
+- <span class="tossface">✅</span> High-performance file I/O operations with large datasets
+- <span class="tossface">✅</span> Building high-performance modules in Rust with type safety
 
 </div>
 
@@ -89,8 +90,8 @@ Cannot be used for:
 
 <div class="tossface">
 
-- ❌ Modules requiring platform-specific features (e.g., camera access, sensors, native UI components)
-- ❌ Modules requiring standard TurboModule capabilities (e.g., event emitters, platform context access)
+- <span class="tossface">❌</span> Modules requiring platform-specific features (e.g., camera access, sensors, native UI components)
+- <span class="tossface">❌</span> Modules requiring standard TurboModule capabilities (e.g., event emitters, platform context access)
 
 </div>
 

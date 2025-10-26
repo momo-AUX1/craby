@@ -19,10 +19,10 @@ You can also use the `craby` command instead of `crabygen` (they are aliases).
 Initialize a new Craby module project with complete scaffolding.
 
 ```bash
-npx crabygen init <module-name>
+npx crabygen init <package-name>
 ```
 
-- `<module-name>` - Name of your module (e.g., `my-calculator`)
+- `<package-name>` - Name of your package (e.g., `my-calculator`)
 
 **Example:**
 

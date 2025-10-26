@@ -41,7 +41,10 @@ export default withMermaid(
           ],
         },
         {
-          items: [{ text: 'Limitations', link: '/guide/limitations' }],
+          items: [
+            { text: 'Showcase', link: '/guide/showcase' },
+            { text: 'Limitations', link: '/guide/limitations' },
+          ],
         },
       ],
       socialLinks: [{ icon: 'github', link: 'https://github.com/leegeunhyeok/craby' }],

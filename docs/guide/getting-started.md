@@ -36,8 +36,8 @@ You have two options for getting started with Craby: scaffolding a new module or
 The quickest way to get started is to use the `crabygen init` command:
 
 ```bash
-npx crabygen init <module-name>
-cd <module-name>
+npx crabygen init <package-name>
+cd <package-name>
 ```
 
 This will create a complete module structure with:
