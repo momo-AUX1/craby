@@ -9,7 +9,7 @@ use crate::{
     parser::types::{
         EnumTypeAnnotation, Method, ObjectTypeAnnotation, Param, RefTypeAnnotation, TypeAnnotation,
     },
-    platform::rust::template::{alias_default_impl, as_struct_def, enum_default_impl},
+    platform::rust::template::{as_struct_def, collect_alias_default_impls, enum_default_impl},
     types::Schema,
     utils::indent_str,
 };
@@ -342,14 +342,14 @@ impl Schema {
     /// type MyModule;
     ///
     /// #[cxx_name = "createMyModule"]
-    /// fn create_my_module(id: usize) -> Box<MyModule>;
+    /// fn create_my_module(id: usize, data_path: &str) -> Box<MyModule>;
     ///
     /// #[cxx_name = "multiply"]
     /// fn my_module_multiply(it_: &mut MyModule, a: f64, b: f64) -> Result<f64>;
     ///
     /// // Implementation:
-    /// fn create_my_module(id: usize) -> Box<MyModule> {
-    ///     Box::new(MyModule::new(id))
+    /// fn create_my_module(id: usize, data_path: &str) -> Box<MyModule> {
+    ///     Box::new(MyModule::new(id, data_path))
     /// }
     ///
     /// fn my_module_multiply(it_: &mut MyModule, a: f64, b: f64) -> Result<f64> {
@@ -368,15 +368,16 @@ impl Schema {
         func_extern_sigs.push(formatdoc! {
             r#"
             #[cxx_name = "create{module_name}"]
-            fn create_{snake_cake}(id: usize) -> Box<{module_name}>;"#,
+            fn create_{snake_cake}(id: usize, data_path: &str) -> Box<{module_name}>;"#,
             module_name = pascal_case(&self.module_name),
             snake_cake = snake_case(&self.module_name),
         });
 
         func_impls.push(formatdoc! {
             r#"
-            fn create_{snake_cake}(id: usize) -> Box<{module_name}> {{
-                Box::new({module_name}::new(id))
+            fn create_{snake_cake}(id: usize, data_path: &str) -> Box<{module_name}> {{
+                let ctx = Context::new(id, data_path);
+                Box::new({module_name}::new(ctx))
             }}"#,
             module_name = pascal_case(&self.module_name),
             snake_cake = snake_case(&self.module_name),
@@ -543,7 +544,17 @@ impl Schema {
             if !struct_defs.contains_key(type_annotation) {
                 let obj = type_annotation.as_object().unwrap();
                 struct_defs.insert(type_annotation.clone(), as_struct_def(obj)?);
-                type_impls.push(alias_default_impl(obj)?);
+
+                // Collect default implementations for the alias type
+                let mut type_impls_map = BTreeMap::new();
+                collect_alias_default_impls(obj, &mut type_impls_map)?;
+
+                type_impls.push(
+                    type_impls_map
+                        .into_values()
+                        .collect::<Vec<_>>()
+                        .join("\n\n"),
+                );
             }
         }
 
@@ -611,7 +622,7 @@ impl Schema {
                 if let nullable_type @ TypeAnnotation::Nullable(type_annotation) =
                     &param.type_annotation
                 {
-                    let rs_type = type_annotation.as_rs_type()?.0;
+                    let rs_type = nullable_type.as_rs_type()?.0;
 
                     if let Entry::Vacant(e) = type_impls.entry(rs_type) {
                         let nullable_type = nullable_type.as_rs_bridge_type()?.0;
@@ -662,7 +673,7 @@ impl Schema {
 
             if let nullable_type @ TypeAnnotation::Nullable(type_annotation) = &method_spec.ret_type
             {
-                let rs_type = type_annotation.as_rs_type()?.0;
+                let rs_type = nullable_type.as_rs_type()?.0;
 
                 if let Entry::Vacant(e) = type_impls.entry(rs_type) {
                     let nullable_type = nullable_type.as_rs_bridge_type()?.0;
@@ -715,7 +726,7 @@ impl Schema {
         for type_annotation in &self.aliases {
             let obj = type_annotation.as_object().unwrap();
             if !type_impls.contains_key(&obj.name) {
-                type_impls.insert(obj.name.clone(), alias_default_impl(obj)?);
+                collect_alias_default_impls(obj, type_impls)?;
             }
         }
 
@@ -731,6 +742,8 @@ impl Schema {
 }
 
 pub mod template {
+    use std::collections::{btree_map::Entry, BTreeMap};
+
     use craby_common::utils::string::snake_case;
     use indoc::formatdoc;
 
@@ -814,8 +827,10 @@ pub mod template {
     ///     }
     /// }
     /// ```
-    pub fn alias_default_impl(obj: &ObjectTypeAnnotation) -> Result<String, anyhow::Error> {
-        let mut default_impls = vec![];
+    pub fn collect_alias_default_impls(
+        obj: &ObjectTypeAnnotation,
+        type_impls: &mut BTreeMap<String, String>,
+    ) -> Result<(), anyhow::Error> {
         let mut props_with_default_val = Vec::with_capacity(obj.props.len());
 
         for prop in &obj.props {
@@ -827,49 +842,52 @@ pub mod template {
 
             if let nullable_type @ TypeAnnotation::Nullable(type_annotation) = &prop.type_annotation
             {
-                let nullable_type = nullable_type.as_rs_bridge_type()?.0;
-                let rs_impl_type = type_annotation.as_rs_impl_type()?.0;
-                let default_val = type_annotation.as_rs_default_val()?;
+                let rs_type = nullable_type.as_rs_type()?.0;
 
-                let default_impl = formatdoc! {
-                    r#"
-                    impl Default for {nullable_type} {{
-                        fn default() -> Self {{
-                            {nullable_type} {{
-                                null: true,
-                                val: {default_val},
+                if let Entry::Vacant(e) = type_impls.entry(rs_type) {
+                    let nullable_type = nullable_type.as_rs_bridge_type()?.0;
+                    let rs_impl_type = type_annotation.as_rs_impl_type()?.0;
+                    let default_val = type_annotation.as_rs_default_val()?;
+
+                    let default_impl = formatdoc! {
+                        r#"
+                        impl Default for {nullable_type} {{
+                            fn default() -> Self {{
+                                {nullable_type} {{
+                                    null: true,
+                                    val: {default_val},
+                                }}
+                            }}
+                        }}"#,
+                        nullable_type = nullable_type,
+                        default_val = default_val,
+                    };
+
+                    let nullable_impl = formatdoc! {
+                        r#"
+                        impl From<{nullable_type}> for Nullable<{rs_impl_type}> {{
+                            fn from(val: {nullable_type}) -> Self {{
+                                Nullable::new(if val.null {{ None }} else {{ Some(val.val) }})
                             }}
                         }}
-                    }}"#,
-                    nullable_type = nullable_type,
-                    default_val = default_val,
-                };
-
-                let nullable_impl = formatdoc! {
-                    r#"
-                    impl From<{nullable_type}> for Nullable<{rs_impl_type}> {{
-                        fn from(val: {nullable_type}) -> Self {{
-                            Nullable::new(if val.null {{ None }} else {{ Some(val.val) }})
-                        }}
-                    }}
-
-                    impl From<Nullable<{rs_impl_type}>> for {nullable_type} {{
-                        fn from(val: Nullable<{rs_impl_type}>) -> Self {{
-                            let val = val.into_value();
-                            let null = val.is_none();
-                            {nullable_type} {{
-                                val: val.unwrap_or({default_val}),
-                                null,
+    
+                        impl From<Nullable<{rs_impl_type}>> for {nullable_type} {{
+                            fn from(val: Nullable<{rs_impl_type}>) -> Self {{
+                                let val = val.into_value();
+                                let null = val.is_none();
+                                {nullable_type} {{
+                                    val: val.unwrap_or({default_val}),
+                                    null,
+                                }}
                             }}
-                        }}
-                    }}"#,
-                    rs_impl_type = rs_impl_type,
-                    nullable_type = nullable_type,
-                    default_val = default_val,
-                };
+                        }}"#,
+                        rs_impl_type = rs_impl_type,
+                        nullable_type = nullable_type,
+                        default_val = default_val,
+                    };
 
-                default_impls.push(default_impl);
-                default_impls.push(nullable_impl);
+                    e.insert([default_impl, nullable_impl].join("\n\n"));
+                }
             }
         }
 
@@ -886,9 +904,9 @@ pub mod template {
             props = indent_str(props_with_default_val.join(",\n"), 12),
         };
 
-        default_impls.push(default_impl);
+        type_impls.insert(obj.name.clone(), default_impl);
 
-        Ok(default_impls.join("\n\n"))
+        Ok(())
     }
 
     /// Generates Default implementation for enum types.

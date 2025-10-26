@@ -1086,7 +1086,7 @@ private:
 };
 #endif // CXXBRIDGE1_STRUCT_craby$bridging$CrabyTest
 
-::rust::Box<::craby::bridging::Calculator> createCalculator(::std::size_t id) noexcept;
+::rust::Box<::craby::bridging::Calculator> createCalculator(::std::size_t id, ::rust::Str data_path) noexcept;
 
 double add(::craby::bridging::Calculator &it_, double a, double b);
 
@@ -1096,7 +1096,7 @@ double multiply(::craby::bridging::Calculator &it_, double a, double b);
 
 double subtract(::craby::bridging::Calculator &it_, double a, double b);
 
-::rust::Box<::craby::bridging::CrabyTest> createCrabyTest(::std::size_t id) noexcept;
+::rust::Box<::craby::bridging::CrabyTest> createCrabyTest(::std::size_t id, ::rust::Str data_path) noexcept;
 
 ::rust::Vec<double> arrayMethod(::craby::bridging::CrabyTest &it_, ::rust::Vec<double> arg);
 
@@ -1105,6 +1105,8 @@ bool booleanMethod(::craby::bridging::CrabyTest &it_, bool arg);
 void camelMethod(::craby::bridging::CrabyTest &it_);
 
 ::rust::String enumMethod(::craby::bridging::CrabyTest &it_, ::craby::bridging::MyEnum arg_0, ::craby::bridging::SwitchState arg_1);
+
+::rust::String getDataPath(::craby::bridging::CrabyTest &it_);
 
 double getState(::craby::bridging::CrabyTest &it_);
 
@@ -1118,6 +1120,8 @@ void pascalMethod(::craby::bridging::CrabyTest &it_);
 
 double promiseMethod(::craby::bridging::CrabyTest &it_, double arg);
 
+::craby::bridging::NullableString readData(::craby::bridging::CrabyTest &it_);
+
 void setState(::craby::bridging::CrabyTest &it_, double arg);
 
 void snakeMethod(::craby::bridging::CrabyTest &it_);
@@ -1125,6 +1129,8 @@ void snakeMethod(::craby::bridging::CrabyTest &it_);
 ::rust::String stringMethod(::craby::bridging::CrabyTest &it_, ::rust::Str arg);
 
 void triggerSignal(::craby::bridging::CrabyTest &it_);
+
+bool writeData(::craby::bridging::CrabyTest &it_, ::rust::Str value);
 } // namespace bridging
 } // namespace craby
 

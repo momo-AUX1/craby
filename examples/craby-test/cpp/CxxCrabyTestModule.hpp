@@ -13,6 +13,7 @@ namespace crabytest {
 class JSI_EXPORT CxxCrabyTestModule : public facebook::react::TurboModule {
 public:
   static constexpr const char *kModuleName = "CrabyTest";
+  static std::string dataPath;
 
   CxxCrabyTestModule(std::shared_ptr<facebook::react::CallInvoker> jsInvoker);
   ~CxxCrabyTestModule();
@@ -37,6 +38,11 @@ public:
 
   static facebook::jsi::Value
   enumMethod(facebook::jsi::Runtime &rt,
+      facebook::react::TurboModule &turboModule,
+      const facebook::jsi::Value args[], size_t count);
+
+  static facebook::jsi::Value
+  getDataPath(facebook::jsi::Runtime &rt,
       facebook::react::TurboModule &turboModule,
       const facebook::jsi::Value args[], size_t count);
 
@@ -71,6 +77,11 @@ public:
       const facebook::jsi::Value args[], size_t count);
 
   static facebook::jsi::Value
+  readData(facebook::jsi::Runtime &rt,
+      facebook::react::TurboModule &turboModule,
+      const facebook::jsi::Value args[], size_t count);
+
+  static facebook::jsi::Value
   setState(facebook::jsi::Runtime &rt,
       facebook::react::TurboModule &turboModule,
       const facebook::jsi::Value args[], size_t count);
@@ -87,6 +98,11 @@ public:
 
   static facebook::jsi::Value
   triggerSignal(facebook::jsi::Runtime &rt,
+      facebook::react::TurboModule &turboModule,
+      const facebook::jsi::Value args[], size_t count);
+
+  static facebook::jsi::Value
+  writeData(facebook::jsi::Runtime &rt,
       facebook::react::TurboModule &turboModule,
       const facebook::jsi::Value args[], size_t count);
 

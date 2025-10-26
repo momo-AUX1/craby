@@ -39,8 +39,13 @@ export interface Spec extends NativeModule {
   enumMethod(arg0: MyEnum, arg1: SwitchState): string;
   nullableMethod(arg: number | null): MaybeNumber;
   promiseMethod(arg: number): Promise<number>;
+  // Stateful methods
   setState(arg: number): void;
   getState(): number;
+  // Context (Data path)
+  getDataPath(): string;
+  writeData(value: string): boolean;
+  readData(): string | null;
   // Naming conventions
   camelMethod(): void;
   PascalMethod(): void;

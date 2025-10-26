@@ -2,6 +2,7 @@
 #[rustfmt::skip]
 use crate::calculator_impl::*;
 use crate::craby_test_impl::*;
+use crate::context::*;
 use crate::generated::*;
 
 use bridging::*;
@@ -56,7 +57,7 @@ pub mod bridging {
         type CrabyTest;
 
         #[cxx_name = "createCalculator"]
-        fn create_calculator(id: usize) -> Box<Calculator>;
+        fn create_calculator(id: usize, data_path: &str) -> Box<Calculator>;
 
         #[cxx_name = "add"]
         fn calculator_add(it_: &mut Calculator, a: f64, b: f64) -> Result<f64>;
@@ -71,7 +72,7 @@ pub mod bridging {
         fn calculator_subtract(it_: &mut Calculator, a: f64, b: f64) -> Result<f64>;
 
         #[cxx_name = "createCrabyTest"]
-        fn create_craby_test(id: usize) -> Box<CrabyTest>;
+        fn create_craby_test(id: usize, data_path: &str) -> Box<CrabyTest>;
 
         #[cxx_name = "arrayMethod"]
         fn craby_test_array_method(it_: &mut CrabyTest, arg: Vec<f64>) -> Result<Vec<f64>>;
@@ -84,6 +85,9 @@ pub mod bridging {
 
         #[cxx_name = "enumMethod"]
         fn craby_test_enum_method(it_: &mut CrabyTest, arg_0: MyEnum, arg_1: SwitchState) -> Result<String>;
+
+        #[cxx_name = "getDataPath"]
+        fn craby_test_get_data_path(it_: &mut CrabyTest) -> Result<String>;
 
         #[cxx_name = "getState"]
         fn craby_test_get_state(it_: &mut CrabyTest) -> Result<f64>;
@@ -103,6 +107,9 @@ pub mod bridging {
         #[cxx_name = "promiseMethod"]
         fn craby_test_promise_method(it_: &mut CrabyTest, arg: f64) -> Result<f64>;
 
+        #[cxx_name = "readData"]
+        fn craby_test_read_data(it_: &mut CrabyTest) -> Result<NullableString>;
+
         #[cxx_name = "setState"]
         fn craby_test_set_state(it_: &mut CrabyTest, arg: f64) -> Result<()>;
 
@@ -114,6 +121,9 @@ pub mod bridging {
 
         #[cxx_name = "triggerSignal"]
         fn craby_test_trigger_signal(it_: &mut CrabyTest) -> Result<()>;
+
+        #[cxx_name = "writeData"]
+        fn craby_test_write_data(it_: &mut CrabyTest, value: &str) -> Result<bool>;
     }
 
     #[namespace = "craby::signals"]
@@ -128,8 +138,9 @@ pub mod bridging {
     }
 }
 
-fn create_calculator(id: usize) -> Box<Calculator> {
-    Box::new(Calculator::new(id))
+fn create_calculator(id: usize, data_path: &str) -> Box<Calculator> {
+    let ctx = Context::new(id, data_path);
+    Box::new(Calculator::new(ctx))
 }
 
 fn calculator_add(it_: &mut Calculator, a: f64, b: f64) -> Result<f64, anyhow::Error> {
@@ -160,8 +171,9 @@ fn calculator_subtract(it_: &mut Calculator, a: f64, b: f64) -> Result<f64, anyh
     })
 }
 
-fn create_craby_test(id: usize) -> Box<CrabyTest> {
-    Box::new(CrabyTest::new(id))
+fn create_craby_test(id: usize, data_path: &str) -> Box<CrabyTest> {
+    let ctx = Context::new(id, data_path);
+    Box::new(CrabyTest::new(ctx))
 }
 
 fn craby_test_array_method(it_: &mut CrabyTest, arg: Vec<f64>) -> Result<Vec<f64>, anyhow::Error> {
@@ -188,6 +200,13 @@ fn craby_test_camel_method(it_: &mut CrabyTest) -> Result<(), anyhow::Error> {
 fn craby_test_enum_method(it_: &mut CrabyTest, arg_0: MyEnum, arg_1: SwitchState) -> Result<String, anyhow::Error> {
     catch_panic!({
         let ret = it_.enum_method(arg_0, arg_1);
+        ret
+    })
+}
+
+fn craby_test_get_data_path(it_: &mut CrabyTest) -> Result<String, anyhow::Error> {
+    catch_panic!({
+        let ret = it_.get_data_path();
         ret
     })
 }
@@ -234,6 +253,13 @@ fn craby_test_promise_method(it_: &mut CrabyTest, arg: f64) -> Result<f64, anyho
     }).and_then(|r| r)
 }
 
+fn craby_test_read_data(it_: &mut CrabyTest) -> Result<NullableString, anyhow::Error> {
+    catch_panic!({
+        let ret = it_.read_data();
+        ret.into()
+    })
+}
+
 fn craby_test_set_state(it_: &mut CrabyTest, arg: f64) -> Result<(), anyhow::Error> {
     catch_panic!({
         let ret = it_.set_state(arg);
@@ -258,6 +284,13 @@ fn craby_test_string_method(it_: &mut CrabyTest, arg: &str) -> Result<String, an
 fn craby_test_trigger_signal(it_: &mut CrabyTest) -> Result<(), anyhow::Error> {
     catch_panic!({
         let ret = it_.trigger_signal();
+        ret
+    })
+}
+
+fn craby_test_write_data(it_: &mut CrabyTest, value: &str) -> Result<bool, anyhow::Error> {
+    catch_panic!({
+        let ret = it_.write_data(value);
         ret
     })
 }

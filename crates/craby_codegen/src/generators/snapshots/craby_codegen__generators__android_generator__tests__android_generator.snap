@@ -4,9 +4,8 @@ expression: result
 ---
 ./android/src/main/jni/OnLoad.cpp
 #include <CxxCrabyTestModule.hpp>
-
-#include <jni.h>
 #include <ReactCommon/CxxTurboModuleUtils.h>
+#include <jni.h>
 
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
   facebook::react::registerCxxModuleToGlobalModuleMap(
@@ -15,6 +14,13 @@ jint JNI_OnLoad(JavaVM *vm, void *reserved) {
       return std::make_shared<craby::crabytest::CxxCrabyTestModule>(jsInvoker);
     });
   return JNI_VERSION_1_6;
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_testmodule_TestModulePackage_nativeSetDataPath(JNIEnv *env, jclass clazz, jstring jDataPath) {
+  auto dataPath = std::string(env->GetStringUTFChars(jDataPath, nullptr));
+  craby::crabytest::CxxCrabyTestModule::dataPath = dataPath;
 }
 
 ./android/CMakeLists.txt
@@ -67,3 +73,53 @@ target_compile_definitions(cxx-craby-test PRIVATE
   # the following line. NDK uses GNU style stderror_r() after API 23.
   -DFOLLY_HAVE_XSI_STRERROR_R=1
 )
+
+./android/src/main/java/com/testmodule/TestModulePackage.kt
+package com.testmodule
+
+import com.facebook.react.BaseReactPackage
+import com.facebook.react.bridge.NativeModule
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.module.model.ReactModuleInfo
+import com.facebook.react.module.model.ReactModuleInfoProvider
+import com.facebook.soloader.SoLoader
+
+import java.util.HashMap
+
+class TestModulePackage : BaseReactPackage() {
+  init {
+    SoLoader.loadLibrary("cxx-test-module")
+  }
+
+  override fun getModule(name: String, reactContext: ReactApplicationContext): NativeModule? {
+    if (name in JNI_PREPARE_MODULE_NAME) {
+      nativeSetDataPath(reactContext.filesDir.absolutePath)
+    }
+    return null
+  }
+
+  override fun getReactModuleInfoProvider(): ReactModuleInfoProvider {
+    return ReactModuleInfoProvider {
+      val moduleInfos: MutableMap<String, ReactModuleInfo> = HashMap()
+      JNI_PREPARE_MODULE_NAME.forEach { name ->
+        moduleInfos[name] = ReactModuleInfo(
+          name,
+          name,
+          false,  // canOverrideExistingModule
+          false,  // needsEagerInit
+          false,  // isCxxModule
+          true,  // isTurboModule
+        )
+      }
+      moduleInfos
+    }
+  }
+
+  private external fun nativeSetDataPath(dataPath: String)
+
+  companion object {
+    val JNI_PREPARE_MODULE_NAME = setOf(
+      "__crabyCrabyTest_JNI_prepare__"
+    )
+  }
+}

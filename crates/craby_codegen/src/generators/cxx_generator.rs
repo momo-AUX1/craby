@@ -116,6 +116,7 @@ impl CxxTemplate {
     /// class JSI_EXPORT CxxMyTestModule : public facebook::react::TurboModule {
     /// public:
     ///   static constexpr const char *kModuleName = "MyTestModule";
+    ///   static std::string dataPath;
     ///
     ///   CxxMyTestModule(std::shared_ptr<facebook::react::CallInvoker> jsInvoker);
     ///   ~CxxMyTestModule();
@@ -227,7 +228,7 @@ impl CxxTemplate {
                         auto callbackRef = std::make_shared<jsi::Function>(std::move(callback));
                         auto id = thisModule.nextListenerId_.fetch_add(1);
                         auto name = "{signal_name}";
-                        
+
                         if (thisModule.listenersMap_.find(name) == thisModule.listenersMap_.end()) {{
                           thisModule.listenersMap_[name] = std::unordered_map<size_t, std::shared_ptr<facebook::jsi::Function>>();
                         }}
@@ -310,6 +311,8 @@ impl CxxTemplate {
         // ```cpp
         // namespace mymodule {
         //
+        // std::string CxxMyTestModule::dataPath = std::string();
+        //
         // CxxMyTestModule::CxxMyTestModule(
         //     std::shared_ptr<react::CallInvoker> jsInvoker)
         //     : TurboModule(CxxMyTestModule::kModuleName, jsInvoker) {
@@ -327,13 +330,17 @@ impl CxxTemplate {
             r#"
             namespace {flat_name} {{
 
+            std::string {cxx_mod}::dataPath = std::string();
+
             {cxx_mod}::{cxx_mod}(
                 std::shared_ptr<react::CallInvoker> jsInvoker)
                 : TurboModule({cxx_mod}::kModuleName, jsInvoker) {{
             {register_stmt}
               callInvoker_ = std::move(jsInvoker);
               module_ = std::shared_ptr<craby::bridging::{module_name}>(
-                craby::bridging::create{module_name}(reinterpret_cast<uintptr_t>(this)).into_raw(),
+                craby::bridging::create{module_name}(
+                  reinterpret_cast<uintptr_t>(this),
+                  rust::Str(dataPath.data(), dataPath.size())).into_raw(),
                 [](craby::bridging::{module_name} *ptr) {{ rust::Box<craby::bridging::{module_name}>::from_raw(ptr); }}
               );
               threadPool_ = std::make_shared<craby::utils::ThreadPool>(10);
@@ -377,6 +384,7 @@ impl CxxTemplate {
             class JSI_EXPORT {cxx_mod} : public facebook::react::TurboModule {{
             public:
               static constexpr const char *kModuleName = "{turbo_module_name}";
+              static std::string dataPath;
 
               {cxx_mod}(std::shared_ptr<facebook::react::CallInvoker> jsInvoker);
               ~{cxx_mod}();

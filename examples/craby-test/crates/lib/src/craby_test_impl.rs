@@ -1,19 +1,28 @@
+use std::path::PathBuf;
+
 use crate::ffi::bridging::*;
 use crate::generated::*;
+use crate::context::*;
 use crate::types::*;
 
 pub struct CrabyTest {
-    id: usize,
+    ctx: Context,
     state: Option<Number>,
 }
 
+impl CrabyTest {
+    fn get_file_path(&self) -> PathBuf {
+        PathBuf::from(self.ctx.data_path.clone()).join("data.txt")
+    }
+}
+
 impl CrabyTestSpec for CrabyTest {
-    fn new(id: usize) -> Self {
-        CrabyTest { id, state: None }
+    fn new(ctx: Context) -> Self {
+        CrabyTest { ctx, state: None }
     }
 
     fn id(&self) -> usize {
-        self.id
+        self.ctx.id
     }
 
     fn numeric_method(&mut self, arg: Number) -> Number {
@@ -93,6 +102,21 @@ impl CrabyTestSpec for CrabyTest {
 
     fn get_state(&mut self) -> Number {
         self.state.unwrap_or(0.0)
+    }
+
+    fn get_data_path(&mut self) -> String {
+        self.ctx.data_path.clone()
+    }
+
+    fn write_data(&mut self, value: &str) -> Boolean {
+        std::fs::write(self.get_file_path(), value).is_ok()
+    }
+
+    fn read_data(&mut self) -> Nullable<String> {
+        match std::fs::read_to_string(self.get_file_path()) {
+            Ok(data) => Nullable::<String>::some(data),
+            Err(_) => Nullable::<String>::none(),
+        }
     }
 
     fn trigger_signal(&mut self) -> Void {
