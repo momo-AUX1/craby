@@ -1,0 +1,74 @@
+name: "\U0001F41B Bug report"
+description: Report an issue with Craby
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: bug-description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is. If you intend to submit a PR for this issue, tell us in the description. Thanks!
+      placeholder: I am doing ... What I expect is ... What actually happening is ...
+    validations:
+      required: true
+  - type: input
+    id: reproduction
+    attributes:
+      label: Reproduction (Optional)
+      description: Please provide a link to a repo that can reproduce the problem you ran into. A [minimal reproduction](https://stackoverflow.com/help/minimal-reproducible-example) is helpful ([Why?](https://antfu.me/posts/why-reproductions-are-required)).
+      placeholder: Reproduction URL
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to reproduce
+      description: Please provide any reproduction steps that may need to be described.
+      placeholder: Run `npx craby build` and see the error message.
+  - type: textarea
+    id: rust-version
+    attributes:
+      label: Rust Version
+      description: Output of `rustc --version`
+      render: shell
+      placeholder: rustc 1.xx.x
+  - type: textarea
+    id: platform-info
+    attributes:
+      label: Platform Information
+      description: Please provide your target platform (Android/iOS) and OS version
+      placeholder: |
+        Platform: Android / iOS
+        OS Version: Android 14 / iOS 17
+  - type: input
+    id: build-environment
+    attributes:
+      label: macOS Version
+      description: The macOS version where you built the Craby library (e.g., macOS 15.0)
+      placeholder: macOS 15.0
+  - type: textarea
+    id: package-versions
+    attributes:
+      label: Package Versions
+      description: Please provide the versions of relevant packages
+      placeholder: |
+        react-native: 0.xx.x
+        craby-module: 0.x.x
+        crabygen: 0.x.x
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: |
+        Optional if provided reproduction. Please try not to insert an image but copy paste the log text.
+
+        ````
+        <details>
+        <summary>Click to expand!</summary>
+
+        ```shell
+        // paste the log text here
+        ```
+        </details>
+        ````
