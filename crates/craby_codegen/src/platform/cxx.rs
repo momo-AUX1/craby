@@ -7,10 +7,10 @@ use template::{cxx_arg_ref, cxx_arg_var};
 
 use crate::{
     common::IntoCode,
-    constants::{cxx_mod_cls_name, specs::RESERVED_ARG_NAME_MODULE},
+    constants::specs::RESERVED_ARG_NAME_MODULE,
     parser::types::{EnumTypeAnnotation, Method, ObjectTypeAnnotation, TypeAnnotation},
     platform::cxx::template::CxxBridgingTemplate,
-    types::Schema,
+    types::{CxxModuleName, CxxNamespace, Schema},
     utils::{calc_deps_order, indent_str},
 };
 
@@ -58,23 +58,23 @@ impl TypeAnnotation {
     /// rust::Str                     // String (arguments)
     /// rust::String                  // String
     /// rust::Vec<double>             // Array<Number>
-    /// craby::bridging::MyEnum       // Enum
-    /// craby::bridging::MyStruct     // Object
-    /// craby::bridging::NullableNumber  // Nullable<Number>
+    /// craby::mymodule::bridging::MyEnum       // Enum
+    /// craby::mymodule::bridging::MyStruct     // Object
+    /// craby::mymodule::bridging::NullableNumber  // Nullable<Number>
     /// ```
-    pub fn as_cxx_type(&self, _mod_name: &String) -> Result<String, anyhow::Error> {
+    pub fn as_cxx_type(&self, cxx_ns: &CxxNamespace) -> Result<String, anyhow::Error> {
         let cxx_type = match self {
             TypeAnnotation::Boolean => "bool".to_string(),
             TypeAnnotation::Number => "double".to_string(),
             TypeAnnotation::String => "rust::String".to_string(),
             TypeAnnotation::Array(element_type) => {
-                format!("rust::Vec<{}>", element_type.as_cxx_type(_mod_name)?)
+                format!("rust::Vec<{}>", element_type.as_cxx_type(cxx_ns)?)
             }
             TypeAnnotation::Enum(EnumTypeAnnotation { name, .. }) => {
-                format!("craby::bridging::{}", name)
+                format!("{cxx_ns}::bridging::{name}")
             }
             TypeAnnotation::Object(ObjectTypeAnnotation { name, .. }) => {
-                format!("craby::bridging::{}", name)
+                format!("{cxx_ns}::bridging::{name}")
             }
             TypeAnnotation::Nullable(type_annotation) => {
                 let cxx_struct = match &**type_annotation {
@@ -92,10 +92,10 @@ impl TypeAnnotation {
                             "NullableStringArray".to_string()
                         }
                         TypeAnnotation::Object(ObjectTypeAnnotation { name, .. }) => {
-                            format!("Nullable{}Array", name)
+                            format!("Nullable{name}Array")
                         }
                         TypeAnnotation::Enum(EnumTypeAnnotation { name, .. }) => {
-                            format!("Nullable{}Array", name)
+                            format!("Nullable{name}Array")
                         }
                         _ => {
                             return Err(anyhow::anyhow!(
@@ -112,7 +112,7 @@ impl TypeAnnotation {
                     }
                 };
 
-                format!("craby::bridging::{}", cxx_struct)
+                format!("{cxx_ns}::bridging::{cxx_struct}")
             }
             _ => {
                 return Err(anyhow::anyhow!(
@@ -130,23 +130,23 @@ impl TypeAnnotation {
     /// # Generated Code Examples
     ///
     /// ```cpp
-    /// false                         // Boolean
-    /// 0.0                           // Number
-    /// rust::String()                // String
-    /// rust::Vec<double>()           // Array<Number>
-    /// MyEnum::FirstMember           // Enum
-    /// craby::bridging::MyStruct{}   // Object
+    /// false                                 // Boolean
+    /// 0.0                                   // Number
+    /// rust::String()                        // String
+    /// rust::Vec<double>()                   // Array<Number>
+    /// MyEnum::FirstMember                   // Enum
+    /// craby::mymodule::bridging::MyStruct{} // Object
     /// ```
-    pub fn as_cxx_default_val(&self, mod_name: &String) -> Result<String, anyhow::Error> {
+    pub fn as_cxx_default_val(&self, cxx_ns: &CxxNamespace) -> Result<String, anyhow::Error> {
         let default_val = match self {
             TypeAnnotation::Boolean => "false".to_string(),
             TypeAnnotation::Number => "0.0".to_string(),
             TypeAnnotation::String => "rust::String()".to_string(),
             TypeAnnotation::Array(element_type) => {
-                format!("rust::Vec<{}>()", element_type.as_cxx_type(mod_name)?)
+                format!("rust::Vec<{}>()", element_type.as_cxx_type(cxx_ns)?)
             }
             TypeAnnotation::Enum(EnumTypeAnnotation { members, .. }) => {
-                let enum_type = self.as_cxx_type(mod_name)?;
+                let enum_type = self.as_cxx_type(cxx_ns)?;
                 let first_member = members
                     .first()
                     .ok_or(anyhow::anyhow!("Enum should have at least one member"))?;
@@ -154,12 +154,12 @@ impl TypeAnnotation {
                 format!("{}::{}", enum_type, first_member.name)
             }
             TypeAnnotation::Object(..) => {
-                let cxx_type = self.as_cxx_type(mod_name)?;
+                let cxx_type = self.as_cxx_type(cxx_ns)?;
                 format!("{}{{}}", cxx_type)
             }
             TypeAnnotation::Nullable(..) => {
-                let cxx_type = self.as_cxx_type(mod_name)?;
-                let default_val = self.as_cxx_default_val(mod_name)?;
+                let cxx_type = self.as_cxx_type(cxx_ns)?;
+                let default_val = self.as_cxx_default_val(cxx_ns)?;
 
                 formatdoc! {
                     r#"
@@ -190,8 +190,8 @@ impl TypeAnnotation {
     /// ```
     pub fn as_cxx_from_js(
         &self,
-        mod_name: &String,
-        ident: &String,
+        cxx_ns: &CxxNamespace,
+        ident: &str,
     ) -> Result<CxxFromJs, anyhow::Error> {
         let from_js_expr = match self {
             TypeAnnotation::Boolean
@@ -201,9 +201,8 @@ impl TypeAnnotation {
             | TypeAnnotation::Enum(..)
             | TypeAnnotation::Object(..)
             | TypeAnnotation::Nullable(..) => format!(
-                "react::bridging::fromJs<{}>(rt, {}, callInvoker)",
-                self.as_cxx_type(mod_name)?,
-                ident
+                "react::bridging::fromJs<{}>(rt, {ident}, callInvoker)",
+                self.as_cxx_type(cxx_ns)?,
             ),
             _ => {
                 return Err(anyhow::anyhow!(
@@ -221,7 +220,7 @@ impl TypeAnnotation {
     /// ```cpp
     /// react::bridging::toJs(rt, value)
     /// ```
-    pub fn as_cxx_to_js(&self, ident: &String) -> Result<CxxToJs, anyhow::Error> {
+    pub fn as_cxx_to_js(&self, ident: &str) -> Result<CxxToJs, anyhow::Error> {
         let to_js_expr = match self {
             TypeAnnotation::Boolean
             | TypeAnnotation::Number
@@ -267,17 +266,21 @@ impl Method {
     ///
     ///     auto arg0 = react::bridging::fromJs<double>(rt, args[0], callInvoker);
     ///     auto arg1 = react::bridging::fromJs<double>(rt, args[1], callInvoker);
-    ///     auto ret = craby::bridging::multiply(*it_, arg0, arg1);
+    ///     auto ret = craby::calculator::bridging::multiply(*it_, arg0, arg1);
     ///
     ///     return react::bridging::toJs(rt, ret);
     ///   } catch (const jsi::JSError &err) {
     ///     throw err;
     ///   } catch (const std::exception &err) {
-    ///     throw jsi::JSError(rt, craby::utils::errorMessage(err));
+    ///     throw jsi::JSError(rt, craby::calculator::utils::errorMessage(err));
     ///   }
     /// }
     /// ```
-    pub fn as_cxx_method(&self, mod_name: &String) -> Result<CxxMethod, anyhow::Error> {
+    pub fn as_cxx_method(
+        &self,
+        cxx_ns: &CxxNamespace,
+        cxx_mod: &CxxModuleName,
+    ) -> Result<CxxMethod, anyhow::Error> {
         // ["arg0", "arg1", "arg2"]
         let mut args = Vec::with_capacity(self.params.len() + 1);
         // ["auto arg0 = facebook::react::bridging::fromJs<T>(rt, value, callInvoker)", "..."]
@@ -300,10 +303,7 @@ impl Method {
                 // Convert the `std::string` to `rust::Str`
                 format!("rust::Str({}.data(), {}.size())", str_var, str_var)
             } else {
-                param
-                    .type_annotation
-                    .as_cxx_from_js(mod_name, &arg_ref)?
-                    .expr
+                param.type_annotation.as_cxx_from_js(cxx_ns, &arg_ref)?.expr
             };
             args.push(arg_var.clone());
             args_decls.push(format!("auto {} = {};", arg_var, from_js));
@@ -322,20 +322,18 @@ impl Method {
                 let ret_stmts = if let TypeAnnotation::Void = &**resolve_type {
                     formatdoc! {
                         r#"
-                        craby::bridging::{fn_name}({fn_args});
+                        {cxx_ns}::bridging::{fn_name}({fn_args});
                         promise.resolve();
                         "#,
                         fn_name = camel_case(&self.name),
-                        fn_args = fn_args,
                     }
                 } else {
                     formatdoc! {
                         r#"
-                        auto ret = craby::bridging::{fn_name}({fn_args});
+                        auto ret = {cxx_ns}::bridging::{fn_name}({fn_args});
                         promise.resolve(ret);
                         "#,
                         fn_name = camel_case(&self.name),
-                        fn_args = fn_args,
                     }
                 };
 
@@ -351,7 +349,7 @@ impl Method {
                 //   } catch (const jsi::JSError &err) {
                 //     promise.reject(err.getMessage());
                 //   } catch (const std::exception &err) {
-                //     promise.reject(craby::utils::errorMessage(err));
+                //     promise.reject(craby::calculator::utils::errorMessage(err));
                 //   }
                 // });
                 //
@@ -367,34 +365,34 @@ impl Method {
                       }} catch (const jsi::JSError &err) {{
                         promise.reject(err.getMessage());
                       }} catch (const std::exception &err) {{
-                        promise.reject(craby::utils::errorMessage(err));
+                        promise.reject({cxx_ns}::utils::errorMessage(err));
                       }}
                     }});
 
                     return {ret};"#,
                     bind_args = bind_args.join(", "),
                     ret_stmts = indent_str(&ret_stmts, 4),
-                    ret_type = resolve_type.as_cxx_type(mod_name)?,
-                    ret = self.ret_type.as_cxx_to_js(&"promise".to_string())?.expr,
+                    ret_type = resolve_type.as_cxx_type(cxx_ns)?,
+                    ret = self.ret_type.as_cxx_to_js("promise")?.expr,
                 }
             }
             _ => {
                 // Invoke the FFI function synchronously and return the result
                 //
                 // ```cpp
-                // auto ret = craby::bridging::myFunc(arg0, arg1, arg2);
+                // auto ret = craby::mymodule::bridging::myFunc(arg0, arg1, arg2);
                 // return ret;
                 // ```
                 args.insert(0, format!("*{}", RESERVED_ARG_NAME_MODULE));
                 let ret_stmts = if let TypeAnnotation::Void = &self.ret_type {
                     formatdoc! {
-                        r#"craby::bridging::{fn_name}({fn_args});"#,
+                        r#"{cxx_ns}::bridging::{fn_name}({fn_args});"#,
                         fn_name = camel_case(&self.name),
                         fn_args = args.join(", "),
                     }
                 } else {
                     formatdoc! {
-                        r#"auto ret = craby::bridging::{fn_name}({fn_args});"#,
+                        r#"auto ret = {cxx_ns}::bridging::{fn_name}({fn_args});"#,
                         fn_name = camel_case(&self.name),
                         fn_args = args.join(", "),
                     }
@@ -406,13 +404,12 @@ impl Method {
 
                     return {to_js};"#,
                     ret_stmts = ret_stmts,
-                    to_js = self.ret_type.as_cxx_to_js(&"ret".to_string())?.expr,
+                    to_js = self.ret_type.as_cxx_to_js("ret")?.expr,
                 }
             }
         };
 
         let args_decls = args_decls.join("\n");
-        let cxx_mod = cxx_mod_cls_name(mod_name);
         let args_count = self.params.len();
 
         // ```cpp
@@ -422,8 +419,6 @@ impl Method {
             r#"
             MethodMetadata{{{args_count}, &{cxx_mod}::{fn_name}}}"#,
             fn_name = camel_case(&self.name),
-            cxx_mod = cxx_mod,
-            args_count = args_count,
         };
 
         let invoke_stmts = [args_decls, invoke_stmts].join("\n").trim().to_string();
@@ -447,12 +442,10 @@ impl Method {
               }} catch (const jsi::JSError &err) {{
                 throw err;
               }} catch (const std::exception &err) {{
-                throw jsi::JSError(rt, craby::utils::errorMessage(err));
+                throw jsi::JSError(rt, {cxx_ns}::utils::errorMessage(err));
               }}
             }}"#,
             fn_name = camel_case(&self.name),
-            cxx_mod = cxx_mod,
-            args_count = args_count,
             invoke_stmts = indent_str(&invoke_stmts, 4),
             plural = if args_count > 1 { "s" } else { "" },
         };
@@ -472,20 +465,20 @@ impl Schema {
     ///
     /// ```cpp
     /// template <>
-    /// struct Bridging<craby::bridging::MyStruct> {
-    ///   static craby::bridging::MyStruct fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+    /// struct Bridging<craby::mymodule::bridging::MyStruct> {
+    ///   static craby::mymodule::bridging::MyStruct fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
     ///     auto obj = value.asObject(rt);
     ///     auto obj$foo = obj.getProperty(rt, "foo");
     ///     auto _obj$foo = react::bridging::fromJs<rust::String>(rt, obj$foo, callInvoker);
     ///
-    ///     craby::bridging::MyStruct ret = {
+    ///     craby::mymodule::bridging::MyStruct ret = {
     ///       _obj$foo
     ///     };
     ///
     ///     return ret;
     ///   }
     ///
-    ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::MyStruct value) {
+    ///   static jsi::Value toJs(jsi::Runtime &rt, craby::mymodule::bridging::MyStruct value) {
     ///     jsi::Object obj = jsi::Object(rt);
     ///     auto _obj$foo = react::bridging::toJs(rt, value.foo);
     ///     obj.setProperty(rt, "foo", _obj$foo);
@@ -494,17 +487,20 @@ impl Schema {
     ///   }
     /// };
     /// ```
-    pub fn as_cxx_bridging_templates(&self) -> Result<Vec<String>, anyhow::Error> {
+    pub fn as_cxx_bridging_templates(
+        &self,
+        project_name: &str,
+    ) -> Result<Vec<String>, anyhow::Error> {
+        let cxx_ns = CxxNamespace::from(project_name);
         let mut bridging_templates = BTreeMap::new();
         let mut enum_bridging_templates = BTreeMap::new();
-        let mut nullable_bridging_templates = self.collect_nullable_types()?;
+        let mut nullable_bridging_templates = self.collect_nullable_types(project_name)?;
 
         for type_annotation in &self.aliases {
             let alias_spec = type_annotation.as_object().unwrap();
             bridging_templates.insert(
                 alias_spec.name.clone(),
-                CxxBridgingTemplate::try_into_struct_template(&self.module_name, alias_spec)?
-                    .into_code(),
+                CxxBridgingTemplate::try_into_struct_template(&cxx_ns, alias_spec)?.into_code(),
             );
         }
 
@@ -512,7 +508,7 @@ impl Schema {
             let enum_spec = type_annotation.as_enum().unwrap();
             enum_bridging_templates.insert(
                 enum_spec.name.clone(),
-                CxxBridgingTemplate::try_into_enum_template(enum_spec)?.into_code(),
+                CxxBridgingTemplate::try_into_enum_template(&cxx_ns, enum_spec)?.into_code(),
             );
         }
 
@@ -529,7 +525,7 @@ impl Schema {
             }
 
             if let Some(template) =
-                nullable_bridging_templates.remove(&format!("craby::bridging::{}", name))
+                nullable_bridging_templates.remove(&format!("{cxx_ns}::bridging::{name}"))
             {
                 ordered_templates.push(template);
             }
@@ -547,19 +543,19 @@ impl Schema {
     ///
     /// ```cpp
     /// template <>
-    /// struct Bridging<craby::bridging::NullableNumber> {
-    ///   static craby::bridging::NullableNumber fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+    /// struct Bridging<craby::mymodule::bridging::NullableNumber> {
+    ///   static craby::mymodule::bridging::NullableNumber fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
     ///     if (value.isNull()) {
-    ///       return craby::bridging::NullableNumber{true, 0.0};
+    ///       return craby::mymodule::bridging::NullableNumber{true, 0.0};
     ///     }
     ///
     ///     auto val = react::bridging::fromJs<double>(rt, value, callInvoker);
-    ///     auto ret = craby::bridging::NullableNumber{false, val};
+    ///     auto ret = craby::mymodule::bridging::NullableNumber{false, val};
     ///
     ///     return ret;
     ///   }
     ///
-    ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::NullableNumber value) {
+    ///   static jsi::Value toJs(jsi::Runtime &rt, craby::mymodule::bridging::NullableNumber value) {
     ///     if (value.null) {
     ///       return jsi::Value::null();
     ///     }
@@ -568,20 +564,21 @@ impl Schema {
     ///   }
     /// };
     /// ```
-    pub fn collect_nullable_types(&self) -> Result<BTreeMap<String, String>, anyhow::Error> {
+    pub fn collect_nullable_types(&self, project_name: &str) -> Result<BTreeMap<String, String>, anyhow::Error> {
+        let cxx_ns = CxxNamespace::from(project_name);
         let mut templates = BTreeMap::new();
 
         for method in &self.methods {
             for param in &method.params {
-                if let nullable_type @ TypeAnnotation::Nullable(type_annotation) =
+                if let nullable_type @ TypeAnnotation::Nullable(inner_type_annotation) =
                     &param.type_annotation
                 {
-                    let key = nullable_type.as_cxx_type(&self.module_name)?;
+                    let key = nullable_type.as_cxx_type(&cxx_ns)?;
                     if let BTreeMapEntry::Vacant(e) = templates.entry(key) {
                         let bridging_template = CxxBridgingTemplate::try_into_nullable_template(
-                            &self.module_name,
-                            &nullable_type.as_cxx_type(&self.module_name)?,
-                            type_annotation,
+                            &cxx_ns,
+                            nullable_type,
+                            inner_type_annotation,
                         )?
                         .into_code();
                         e.insert(bridging_template);
@@ -589,13 +586,15 @@ impl Schema {
                 }
             }
 
-            if let nullable_type @ TypeAnnotation::Nullable(type_annotation) = &method.ret_type {
-                let key = nullable_type.as_cxx_type(&self.module_name)?;
+            if let nullable_type @ TypeAnnotation::Nullable(inner_type_annotation) =
+                &method.ret_type
+            {
+                let key = nullable_type.as_cxx_type(&cxx_ns)?;
                 if let BTreeMapEntry::Vacant(e) = templates.entry(key) {
                     let bridging_template = CxxBridgingTemplate::try_into_nullable_template(
-                        &self.module_name,
-                        &nullable_type.as_cxx_type(&self.module_name)?,
-                        type_annotation,
+                        &cxx_ns,
+                        nullable_type,
+                        inner_type_annotation,
                     )?
                     .into_code();
                     e.insert(bridging_template);
@@ -605,15 +604,15 @@ impl Schema {
 
         for type_annotation in &self.aliases {
             for prop in &type_annotation.as_object().unwrap().props {
-                if let nullable_type @ TypeAnnotation::Nullable(type_annotation) =
+                if let nullable_type @ TypeAnnotation::Nullable(inner_type_annotation) =
                     &prop.type_annotation
                 {
-                    let key = nullable_type.as_cxx_type(&self.module_name)?;
+                    let key = nullable_type.as_cxx_type(&cxx_ns)?;
                     if let BTreeMapEntry::Vacant(e) = templates.entry(key) {
                         let bridging_template = CxxBridgingTemplate::try_into_nullable_template(
-                            &self.module_name,
-                            &nullable_type.as_cxx_type(&self.module_name)?,
-                            type_annotation,
+                            &cxx_ns,
+                            nullable_type,
+                            inner_type_annotation,
                         )?
                         .into_code();
                         e.insert(bridging_template);
@@ -636,6 +635,7 @@ pub mod template {
             EnumMemberValue as ParserEnumMemberValue, EnumTypeAnnotation, ObjectTypeAnnotation,
             TypeAnnotation,
         },
+        types::CxxNamespace,
         utils::indent_str,
     };
 
@@ -693,21 +693,21 @@ pub mod template {
         ///
         /// ```cpp
         /// template <>
-        /// struct Bridging<craby::bridging::MyStruct> {
-        ///   static craby::bridging::MyStruct fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+        /// struct Bridging<craby::mymodule::bridging::MyStruct> {
+        ///   static craby::mymodule::bridging::MyStruct fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
         ///     auto obj = value.asObject(rt);
         ///     auto obj$foo = obj.getProperty(rt, "foo");
         ///
         ///     auto _obj$foo = react::bridging::fromJs<rust::String>(rt, value.foo, callInvoker);
         ///
-        ///     craby::bridging::MyStruct ret = {
+        ///     craby::mymodule::bridging::MyStruct ret = {
         ///       _obj$foo
         ///     };
         ///
         ///     return ret;
         ///   }
         ///
-        ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::MyStruct value) {
+        ///   static jsi::Value toJs(jsi::Runtime &rt, craby::mymodule::bridging::MyStruct value) {
         ///     jsi::Object obj = jsi::Object(rt);
         ///     auto _obj$foo = react::bridging::toJs(rt, value.foo);
         ///
@@ -718,10 +718,10 @@ pub mod template {
         /// };
         /// ```
         pub fn try_into_struct_template(
-            mod_name: &String,
+            cxx_ns: &CxxNamespace,
             obj: &ObjectTypeAnnotation,
         ) -> Result<CxxBridgingTemplate, anyhow::Error> {
-            let struct_namespace = format!("craby::bridging::{}", obj.name);
+            let struct_namespace = format!("{cxx_ns}::bridging::{}", obj.name);
             let mut get_props = vec![];
             let mut set_props = vec![];
             let mut from_js_stmts = vec![];
@@ -731,7 +731,7 @@ pub mod template {
             for prop in &obj.props {
                 let ident = format!("obj${}", camel_case(&prop.name));
                 let converted_ident = format!("_{}", ident);
-                let from_js = prop.type_annotation.as_cxx_from_js(mod_name, &ident)?;
+                let from_js = prop.type_annotation.as_cxx_from_js(cxx_ns, &ident)?;
                 let to_js = prop
                     .type_annotation
                     .as_cxx_to_js(&format!("value.{}", snake_case(&prop.name)))?;
@@ -809,23 +809,23 @@ pub mod template {
         ///
         /// ```cpp
         /// template <>
-        /// struct Bridging<craby::bridging::MyEnum> {
-        ///   static craby::bridging::MyEnum fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+        /// struct Bridging<craby::mymodule::bridging::MyEnum> {
+        ///   static craby::mymodule::bridging::MyEnum fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
         ///     auto raw = value.asString(rt).utf8(rt);
         ///     if (raw == "foo") {
-        ///       return craby::bridging::MyEnum::Foo;
+        ///       return craby::mymodule::bridging::MyEnum::Foo;
         ///     } else if (raw == "bar") {
-        ///       return craby::bridging::MyEnum::Bar;
+        ///       return craby::mymodule::bridging::MyEnum::Bar;
         ///     } else {
         ///       throw jsi::JSError(rt, "Invalid enum value (MyEnum)");
         ///     }
         ///   }
         ///
-        ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::MyEnum value) {
+        ///   static jsi::Value toJs(jsi::Runtime &rt, craby::mymodule::bridging::MyEnum value) {
         ///     switch (value) {
-        ///       case craby::bridging::MyEnum::Foo:
+        ///       case craby::mymodule::bridging::MyEnum::Foo:
         ///         return react::bridging::toJs(rt, "foo");
-        ///       case craby::bridging::MyEnum::Bar:
+        ///       case craby::mymodule::bridging::MyEnum::Bar:
         ///         return react::bridging::toJs(rt, "bar");
         ///       default:
         ///         throw jsi::JSError(rt, "Invalid enum value (MyEnum)");
@@ -834,10 +834,10 @@ pub mod template {
         /// };
         /// ```
         pub fn try_into_enum_template(
+            cxx_ns: &CxxNamespace,
             enum_spec: &EnumTypeAnnotation,
         ) -> Result<CxxBridgingTemplate, anyhow::Error> {
-            let enum_namespace = format!("craby::bridging::{}", enum_spec.name);
-
+            let enum_namespace = format!("{cxx_ns}::bridging::{}", enum_spec.name);
             let is_str = match enum_spec.members.first().unwrap().value {
                 ParserEnumMemberValue::String { .. } => true,
                 ParserEnumMemberValue::Number { .. } => false,
@@ -992,19 +992,19 @@ pub mod template {
         ///
         /// ```cpp
         /// template <>
-        /// struct Bridging<craby::bridging::NullableNumber> {
-        ///   static craby::bridging::NullableNumber fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
+        /// struct Bridging<craby::mymodule::bridging::NullableNumber> {
+        ///   static craby::mymodule::bridging::NullableNumber fromJs(jsi::Runtime &rt, const jsi::Value& value, std::shared_ptr<CallInvoker> callInvoker) {
         ///     if (value.isNull()) {
-        ///       return craby::bridging::NullableNumber{true, 0.0};
+        ///       return craby::mymodule::bridging::NullableNumber{true, 0.0};
         ///     }
         ///
         ///     auto val = react::bridging::fromJs<double>(rt, value, callInvoker);
-        ///     auto ret = craby::bridging::NullableNumber{false, val};
+        ///     auto ret = craby::mymodule::bridging::NullableNumber{false, val};
         ///
         ///     return ret;
         ///   }
         ///
-        ///   static jsi::Value toJs(jsi::Runtime &rt, craby::bridging::NullableNumber value) {
+        ///   static jsi::Value toJs(jsi::Runtime &rt, craby::mymodule::bridging::NullableNumber value) {
         ///     if (value.null) {
         ///       return jsi::Value::null();
         ///     }
@@ -1014,26 +1014,24 @@ pub mod template {
         /// };
         /// ```
         pub fn try_into_nullable_template(
-            mod_name: &String,
-            nullable_namespace: &String,
+            cxx_ns: &CxxNamespace,
+            nullable_type_annotation: &TypeAnnotation,
             type_annotation: &TypeAnnotation,
         ) -> Result<CxxBridgingTemplate, anyhow::Error> {
-            let origin_namespace = type_annotation.as_cxx_type(mod_name)?;
-            let default_value = type_annotation.as_cxx_default_val(mod_name)?;
+            let origin_namespace = type_annotation.as_cxx_type(cxx_ns)?;
+            let default_value = type_annotation.as_cxx_default_val(cxx_ns)?;
+            let nullable_type_namespace = nullable_type_annotation.as_cxx_type(cxx_ns)?;
 
             let from_js_impl = formatdoc! {
                 r#"
                 if (value.isNull()) {{
-                  return {nullable_namespace}{{true, {default_value}}};
+                  return {nullable_type_namespace}{{true, {default_value}}};
                 }}
 
                 auto val = react::bridging::fromJs<{origin_namespace}>(rt, value, callInvoker);
-                auto ret = {nullable_namespace}{{false, val}};
+                auto ret = {nullable_type_namespace}{{false, val}};
 
                 return ret;"#,
-                origin_namespace =  origin_namespace,
-                nullable_namespace = nullable_namespace,
-                default_value = default_value,
             };
 
             let to_js_impl = formatdoc! {
@@ -1046,7 +1044,7 @@ pub mod template {
             };
 
             Ok(CxxBridgingTemplate {
-                namespace: nullable_namespace.clone(),
+                namespace: nullable_type_namespace.clone(),
                 from_js: from_js_impl,
                 to_js: to_js_impl,
             })
