@@ -86,5 +86,11 @@ export default withMermaid(
         copyright: `Copyright © ${new Date().getFullYear()} Geunhyeok Lee`,
       },
     },
+    markdown: {
+      theme: {
+        dark: 'dark-plus',
+        light: 'one-light',
+      },
+    },
   }),
 );
