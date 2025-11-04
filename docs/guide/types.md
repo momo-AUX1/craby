@@ -64,6 +64,7 @@ Strings are UTF-8 encoded and automatically converted between languages.
 ```typescript
 export interface Spec extends NativeModule {
   greet(name: string): string;
+  greetMany(names: string[]): string;
 }
 ```
 
@@ -74,8 +75,23 @@ impl GreeterSpec for Greeter {
     fn greet(&mut self, name: &str) -> String {
         format!("Hello, {}!", name)
     }
+
+    fn greet(&mut self, names: Array<String>) -> String {
+        format!("Hello, {}!", names.join(", "))
+    }
 }
 ```
+
+### String Type Conversion Rules
+
+Craby uses different string types depending on the context:
+
+- **Function parameters**: Use `&str` (string slice) for optimal performance
+- **Return values, arrays, and object fields**: Use `String` (owned string)
+
+::: info
+While using `&str` everywhere would be more efficient, it significantly increases type complexity with lifetimes. If your application requires maximum performance for string operations, consider using the `string` type annotation explicitly.
+:::
 
 ## Boolean
 
@@ -183,11 +199,8 @@ impl ArrayProcessorSpec for ArrayProcessor {
         numbers.iter().sum()
     }
 
-    fn reverse(&mut self, mut items: Array<&str>) -> Array<String> {
-        items.reverse();
-        items.into_iter()
-            .map(|s| s.to_string())
-            .collect()
+    fn reverse(&mut self, mut items: Array<String>) -> Array<String> {
+        items.reverse()
     }
 }
 ```
