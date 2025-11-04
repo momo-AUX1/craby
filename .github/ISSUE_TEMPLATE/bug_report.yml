@@ -41,6 +41,13 @@ body:
       placeholder: |
         Platform: Android / iOS
         OS Version: Android 14 / iOS 17
+  - type: textarea
+    id: craby-doctor
+    attributes:
+      label: Doctor Output
+      description: Please provide the output of the `craby doctor` command
+      placeholder: |
+        Doctor Output:
   - type: input
     id: build-environment
     attributes:
