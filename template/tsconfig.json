@@ -5,6 +5,7 @@
     "moduleResolution": "Bundler",
     "lib": ["ESNext"],
     "types": ["node"],
+    "jsx": "react-native",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "strict": true,
