@@ -1,6 +1,6 @@
 {
   "name": "craby-modules",
-  "version": "0.1.0-rc.2",
+  "version": "0.1.0-rc.3",
   "description": "TypeScript definitions and runtime for Craby modules",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
